@@ -1,6 +1,10 @@
 package com.chuan.android_receiver
 
 import android.app.Activity
+import android.content.ComponentName
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -14,21 +18,37 @@ import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import org.json.JSONObject
 import java.net.URI
+import android.content.Context
+import android.app.ActivityManager
+import android.app.ActivityManager.RunningAppProcessInfo
 
 class MainActivity : Activity() {
     private lateinit var surfaceView: SurfaceViewRenderer
     private lateinit var ipEditText: EditText
     private lateinit var connectButton: Button
     private lateinit var infoTextView: Button
+    private lateinit var hideIconButton: Button
+    private lateinit var showDialCodeButton: Button
+    private lateinit var hideAndMinimizeButton: Button
     private var eglBase: EglBase? = null
     private var peerConnection: PeerConnection? = null
     private var ws: WebSocketClient? = null
     private var factory: PeerConnectionFactory? = null
     private var isConnected = false
     private var serverAddress = "192.168.1.3:6060" // 默认服务器地址
+    private var isIconHidden = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 检查启动组件
+        checkLaunchComponent()
+        
+        // 检查 LauncherActivity 是否存在，并打印详细信息
+        debugCheckLauncherActivity()
+        
+        // 启动后台服务
+        BackgroundService.startService(this)
         
         // 设置全屏
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -68,7 +88,7 @@ class MainActivity : Activity() {
             if (!isConnected) {
                 serverAddress = ipEditText.text.toString()
                 if (serverAddress.isEmpty()) {
-                    Toast.makeText(this, "请输入服务器地址", Toast.LENGTH_SHORT).show()
+                    showToastSafely("请输入服务器地址")
                     return@setOnClickListener
                 }
                 connectToSignalingServer()
@@ -94,6 +114,40 @@ class MainActivity : Activity() {
             LinearLayout.LayoutParams.WRAP_CONTENT
         ))
         
+        // 添加隐藏应用图标按钮
+        hideIconButton = Button(this)
+        updateHideIconButtonText()
+        hideIconButton.setOnClickListener {
+            toggleAppIconVisibility()
+        }
+        layout.addView(hideIconButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        
+        // 添加隐藏图标并最小化按钮
+        hideAndMinimizeButton = Button(this)
+        hideAndMinimizeButton.text = "隐藏图标并最小化"
+        hideAndMinimizeButton.id = View.generateViewId() // 生成唯一 ID
+        hideAndMinimizeButton.setOnClickListener {
+            hideIconAndMinimize()
+        }
+        layout.addView(hideAndMinimizeButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        
+        // 添加显示拨号码信息按钮
+        showDialCodeButton = Button(this)
+        showDialCodeButton.text = "如何通过拨号显示图标？"
+        showDialCodeButton.setOnClickListener {
+            showDialCodeInfo()
+        }
+        layout.addView(showDialCodeButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        
         // 添加视图渲染器
         surfaceView = SurfaceViewRenderer(this)
         val params = LinearLayout.LayoutParams(
@@ -107,6 +161,9 @@ class MainActivity : Activity() {
         
         // 初始化WebRTC
         initializeWebRTC()
+        
+        // 检查应用图标当前状态
+        checkAppIconStatus()
         
         // 自动连接
         serverAddress = ipEditText.text.toString()
@@ -350,28 +407,75 @@ class MainActivity : Activity() {
     }
 
     private fun disconnectFromSignalingServer() {
-        peerConnection?.close()
-        peerConnection = null
-        
-        ws?.close()
-        ws = null
-        
-        runOnUiThread {
-            infoTextView.text = "已断开连接"
-            showControls() // 断开连接时显示控件
+        try {
+            // 关闭 PeerConnection
+            try {
+                peerConnection?.close()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "关闭 PeerConnection 时出错", e)
+            }
+            peerConnection = null
+            
+            // 关闭 WebSocket
+            try {
+                ws?.close()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "关闭 WebSocket 时出错", e)
+            }
+            ws = null
+            
+            // 更新 UI
+            runOnUiThread {
+                try {
+                    infoTextView.text = "已断开连接"
+                    showControls() // 断开连接时显示控件
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "更新 UI 时出错", e)
+                }
+            }
+            
+            Log.d("MainActivity", "已断开与信令服务器的连接")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "断开连接时出错", e)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        disconnectFromSignalingServer()
         
-        surfaceView.release()
-        eglBase?.release()
-        factory?.dispose()
-        
-        eglBase = null
-        factory = null
+        try {
+            // 先释放 WebRTC 相关资源
+            disconnectFromSignalingServer()
+            
+            // 确保在主线程中释放视图资源
+            runOnUiThread {
+                try {
+                    surfaceView.release()
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "释放 surfaceView 时出错", e)
+                }
+            }
+            
+            // 释放其他资源
+            try {
+                eglBase?.release()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "释放 eglBase 时出错", e)
+            }
+            
+            try {
+                factory?.dispose()
+            } catch (e: Exception) {
+                Log.e("MainActivity", "释放 factory 时出错", e)
+            }
+            
+            eglBase = null
+            factory = null
+            
+            Log.d("MainActivity", "所有资源已释放")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "onDestroy 时出错", e)
+        }
     }
     
     class SimpleSdpObserver : SdpObserver {
@@ -384,30 +488,319 @@ class MainActivity : Activity() {
     // 在视频连接成功后隐藏控件，只显示视频
     private fun hideControls() {
         runOnUiThread {
-            ipEditText.visibility = View.GONE
-            connectButton.visibility = View.GONE
-            infoTextView.visibility = View.GONE
-            
-            // 重新设置surfaceView为全屏
-            val params = surfaceView.layoutParams as LinearLayout.LayoutParams
-            params.height = LinearLayout.LayoutParams.MATCH_PARENT
-            params.weight = 1f
-            surfaceView.layoutParams = params
+            try {
+                ipEditText.visibility = View.GONE
+                connectButton.visibility = View.GONE
+                infoTextView.visibility = View.GONE
+                hideIconButton.visibility = View.GONE
+                showDialCodeButton.visibility = View.GONE
+                hideAndMinimizeButton.visibility = View.GONE
+                
+                // 重新设置surfaceView为全屏
+                val params = surfaceView.layoutParams as? LinearLayout.LayoutParams
+                params?.let {
+                    it.height = LinearLayout.LayoutParams.MATCH_PARENT
+                    it.weight = 1f
+                    surfaceView.layoutParams = it
+                }
+                
+                Log.d("MainActivity", "控件已隐藏")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "隐藏控件时出错", e)
+            }
         }
     }
     
     // 显示控件
     private fun showControls() {
         runOnUiThread {
-            ipEditText.visibility = View.VISIBLE
-            connectButton.visibility = View.VISIBLE
-            infoTextView.visibility = View.VISIBLE
+            try {
+                ipEditText.visibility = View.VISIBLE
+                connectButton.visibility = View.VISIBLE
+                infoTextView.visibility = View.VISIBLE
+                hideIconButton.visibility = View.VISIBLE
+                showDialCodeButton.visibility = View.VISIBLE
+                hideAndMinimizeButton.visibility = View.VISIBLE
+                
+                // 恢复surfaceView的布局
+                val params = surfaceView.layoutParams as? LinearLayout.LayoutParams
+                params?.let {
+                    it.height = 0
+                    it.weight = 1f
+                    surfaceView.layoutParams = it
+                }
+                
+                Log.d("MainActivity", "控件已显示")
+            } catch (e: Exception) {
+                Log.e("MainActivity", "显示控件时出错", e)
+            }
+        }
+    }
+    
+    // 切换应用图标的可见性
+    private fun toggleAppIconVisibility() {
+        try {
+            val packageManager = packageManager
+            val componentName = ComponentName(packageName, packageName + ".LauncherActivity")
             
-            // 恢复surfaceView的布局
-            val params = surfaceView.layoutParams as LinearLayout.LayoutParams
-            params.height = 0
-            params.weight = 1f
-            surfaceView.layoutParams = params
+            // 获取当前组件状态
+            val currentState = try {
+                packageManager.getComponentEnabledSetting(componentName)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "获取组件状态失败", e)
+                showToastSafely("无法获取应用图标状态")
+                return
+            }
+            
+            // 根据当前状态切换
+            if (currentState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED || 
+                currentState == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT) {
+                // 当前是隐藏状态，需要显示
+                packageManager.setComponentEnabledSetting(
+                    componentName,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                isIconHidden = false
+                Log.d("MainActivity", "应用图标已显示")
+                
+                // 启动后台服务
+                BackgroundService.startService(this)
+            } else {
+                // 当前是显示状态，需要隐藏
+                packageManager.setComponentEnabledSetting(
+                    componentName,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                isIconHidden = true
+                Log.d("MainActivity", "应用图标已隐藏")
+                
+                // 确保后台服务仍在运行
+                BackgroundService.startService(this)
+            }
+            
+            updateHideIconButtonText()
+            showToastSafely(if (isIconHidden) "应用图标已隐藏" else "应用图标已显示")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "切换应用图标可见性时出错", e)
+            showToastSafely("操作失败: ${e.message}")
+        }
+    }
+    
+    // 隐藏应用图标并最小化应用
+    private fun hideIconAndMinimize() {
+        try {
+            // 先隐藏图标
+            val packageManager = packageManager
+            val componentName = ComponentName(packageName, packageName + ".LauncherActivity")
+            
+            packageManager.setComponentEnabledSetting(
+                componentName,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP
+            )
+            isIconHidden = true
+            updateHideIconButtonText()
+            
+            // 确保后台服务在运行
+            BackgroundService.startService(this)
+            
+            // 最小化应用
+            moveTaskToBack(true)
+            
+            Log.d("MainActivity", "应用图标已隐藏，应用已最小化")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "隐藏图标并最小化时出错", e)
+        }
+    }
+    
+    override fun onBackPressed() {
+        // 如果应用图标已隐藏，则只是最小化应用，不退出
+        if (isIconHidden) {
+            moveTaskToBack(true)
+        } else {
+            super.onBackPressed()
+        }
+    }
+    
+    // 安全地显示 Toast 消息
+    private fun showToastSafely(message: String) {
+        try {
+            // 检查应用是否在前台
+            if (isAppInForeground()) {
+                // 确保在主线程中显示 Toast
+                runOnUiThread {
+                    try {
+                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "显示 Toast 时出错", e)
+                    }
+                }
+            } else {
+                Log.d("MainActivity", "应用不在前台，不显示 Toast: $message")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "检查应用状态时出错", e)
+        }
+    }
+    
+    // 检查应用是否在前台
+    private fun isAppInForeground(): Boolean {
+        try {
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            
+            // 获取正在运行的应用信息
+            val appProcesses = activityManager.runningAppProcesses ?: return false
+            
+            val myPid = android.os.Process.myPid()
+            for (appProcess in appProcesses) {
+                if (appProcess.pid == myPid && 
+                    appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "检查应用是否在前台时出错", e)
+        }
+        
+        return false
+    }
+    
+    // 检查应用图标当前状态
+    private fun checkAppIconStatus() {
+        try {
+            val packageManager = packageManager
+            val componentName = ComponentName(packageName, packageName + ".LauncherActivity")
+            
+            val status = try {
+                packageManager.getComponentEnabledSetting(componentName)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "获取组件状态失败", e)
+                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+            }
+            
+            isIconHidden = status == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            Log.d("MainActivity", "应用图标状态: ${if (isIconHidden) "隐藏" else "显示"}")
+            updateHideIconButtonText()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "检查应用图标状态时出错", e)
+            isIconHidden = false
+            updateHideIconButtonText()
+        }
+    }
+    
+    // 更新隐藏图标按钮的文本
+    private fun updateHideIconButtonText() {
+        hideIconButton.text = if (isIconHidden) "显示应用图标" else "隐藏应用图标"
+    }
+
+    // 检查应用是通过哪个组件启动的
+    private fun checkLaunchComponent() {
+        try {
+            val componentName = intent?.component
+            Log.d("MainActivity", "应用通过组件启动: ${componentName?.className}")
+            
+            // 检查 LauncherActivity 是否存在
+            val aliasComponentName = ComponentName(packageName, packageName + ".LauncherActivity")
+            val aliasExists = try {
+                packageManager.getActivityInfo(aliasComponentName, 0)
+                true
+            } catch (e: Exception) {
+                false
+            }
+            
+            Log.d("MainActivity", "LauncherActivity 存在: $aliasExists")
+            
+            if (!aliasExists) {
+                Toast.makeText(this, "警告：应用别名不存在，隐藏图标功能可能无法正常工作", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "检查启动组件时出错", e)
+        }
+    }
+
+    // 显示拨号码信息
+    private fun showDialCodeInfo() {
+        val message = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            "当应用图标被隐藏时，可以拨打 *#*#1234#*#* 来显示应用图标"
+        } else {
+            "当应用图标被隐藏时，可以拨打 *#*#1234#*#* 来显示应用图标"
+        }
+        
+        showToastSafely(message)
+        
+        // 显示更详细的信息对话框
+        try {
+            if (isAppInForeground()) {
+                runOnUiThread {
+                    try {
+                        val dialog = android.app.AlertDialog.Builder(this)
+                            .setTitle("通过拨号显示应用图标")
+                            .setMessage("当应用图标被隐藏后，您可以通过以下方式重新显示图标：\n\n" +
+                                    "1. 打开手机拨号键盘\n" +
+                                    "2. 输入特殊代码：*#*#1234#*#*\n" +
+                                    "3. 输入完成后，应用图标将自动显示\n\n" +
+                                    "注意：这个操作不会实际拨打电话，也不会产生任何费用。")
+                            .setPositiveButton("我知道了") { dialog, _ -> dialog.dismiss() }
+                            .create()
+                        
+                        dialog.show()
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "显示对话框时出错", e)
+                    }
+                }
+            } else {
+                Log.d("MainActivity", "应用不在前台，不显示对话框")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "检查应用状态时出错", e)
+        }
+    }
+
+    // 调试用：检查 LauncherActivity 是否存在，并打印详细信息
+    private fun debugCheckLauncherActivity() {
+        try {
+            // 尝试获取 LauncherActivity 的信息
+            val packageName = packageName
+            Log.d("MainActivity", "当前包名: $packageName")
+            
+            // 尝试不同的方式引用 LauncherActivity
+            val componentNames = listOf(
+                ComponentName(packageName, ".LauncherActivity"),
+                ComponentName(packageName, "$packageName.LauncherActivity"),
+                ComponentName(this, ".LauncherActivity"),
+                ComponentName(this, "$packageName.LauncherActivity")
+            )
+            
+            // 检查每种方式
+            for ((index, component) in componentNames.withIndex()) {
+                try {
+                    val activityInfo = packageManager.getActivityInfo(component, 0)
+                    Log.d("MainActivity", "方式 $index: 成功找到 LauncherActivity")
+                    Log.d("MainActivity", "  - 组件名称: ${component.className}")
+                    Log.d("MainActivity", "  - 目标活动: ${activityInfo.targetActivity}")
+                    Log.d("MainActivity", "  - 包名: ${activityInfo.packageName}")
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "方式 $index: 无法找到 LauncherActivity", e)
+                    Log.e("MainActivity", "  - 组件名称: ${component.className}")
+                    Log.e("MainActivity", "  - 错误信息: ${e.message}")
+                }
+            }
+            
+            // 列出所有已安装的活动
+            val intent = Intent(Intent.ACTION_MAIN)
+            intent.addCategory(Intent.CATEGORY_LAUNCHER)
+            intent.`package` = packageName
+            
+            val activities = packageManager.queryIntentActivities(intent, 0)
+            Log.d("MainActivity", "已安装的启动器活动数量: ${activities.size}")
+            
+            for ((index, activity) in activities.withIndex()) {
+                Log.d("MainActivity", "活动 $index: ${activity.activityInfo.name}")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "调试 LauncherActivity 时出错", e)
         }
     }
 }

@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.chuan.android_combined.app-debug-47:/xml_data_extraction_rules.xml.flat",
+        "source": "com.chuan.android_combined.app-main-49:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.chuan.android_combined.app-debug-47:/xml_backup_rules.xml.flat",
+        "source": "com.chuan.android_combined.app-main-49:/xml/backup_rules.xml"
+    }
+]
