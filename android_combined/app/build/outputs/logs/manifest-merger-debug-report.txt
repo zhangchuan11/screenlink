@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-111:12
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-111:12
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-111:12
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-111:12
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-109:12
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-109:12
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-109:12
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:1-109:12
 MERGED from [androidx.compose.material3:material3-android:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4cab7ce497b9fdf5d4882b7b1b0a6bb0\transformed\material3-release\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.compose.material:material-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\387dec19c5555b6b44204404a29b36f6\transformed\material-release\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.material:material-ripple-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\a5b894f78ed60be6766e77cd94027dda\transformed\material-ripple-release\AndroidManifest.xml:2:1-7:12
@@ -22,17 +22,30 @@ MERGED from [androidx.compose.ui:ui-graphics-android:1.7.0] C:\Users\Administrat
 MERGED from [androidx.compose.material:material-icons-core-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\533287219692a213ce68ebc5e550c74a\transformed\material-icons-core-release\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.ui:ui-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\7550cc39ecd836183bd1ac04df18dc01\transformed\ui-release\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e9367bea5a6076e494b94ffb9b9d7506\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4ac31082c3b90347379ecb84a7ab9e03\transformed\constraintlayout-2.1.4\AndroidManifest.xml:2:1-11:12
+MERGED from [androidx.appcompat:appcompat:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\04118702058ddd1287345917cf25126a\transformed\appcompat-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b2df57ac9523108ab88048987497f708\transformed\fragment-1.1.0\AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.activity:activity:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\adf0b071e98e8cbc841d22dd3be4c037\transformed\activity-1.10.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.activity:activity-ktx:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\6291def30fce42b19e715f66eed7449c\transformed\activity-ktx-1.10.1\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.activity:activity-compose:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\3aeee03aee7984e275452544f58dc410\transformed\activity-compose-1.10.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.appcompat:appcompat-resources:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\46c86e25d1dbae21b64c9895b675a9bd\transformed\appcompat-resources-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\774ae434919bef2273e593675dd7bac5\transformed\drawerlayout-1.0.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1cbefe62b04c6f25e37537547a6e2899\transformed\autofill-1.0.0\AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.graphics:graphics-path:1.0.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\da21491bbbbf6229db45f766c05a4dd2\transformed\graphics-path-1.0.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\ccc0954a1c161ae3b902a22883a0b78e\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\9c720a0f53fa6e1b3ed8ed1d3c7605ec\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1bb6c8b2cd4b8c509b17e8af405127b4\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\9fea9b36873ffd7e7a66e73db9aeb1b6\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\0a9dc31abb81b3cc6623cedd26480edf\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\c5747eb7d4f2decff46d01538c291893\transformed\emoji2-1.3.0\AndroidManifest.xml:17:1-35:12
 MERGED from [androidx.core:core:1.16.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b7f4eed1fe3ac03dab77e71b3b5091f0\transformed\core-1.16.0\AndroidManifest.xml:17:1-30:12
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\08835087e5445aceccff2c863c25ab9a\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:17:1-23:12
 MERGED from [androidx.lifecycle:lifecycle-process:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\869972207eed65b3cfb5fa8fd0c6f198\transformed\lifecycle-process-2.9.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\98b359e0d5292280f76dfc41c31eb31b\transformed\lifecycle-livedata-core-ktx-2.9.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1273c70e7cb1f79bba5fa631c0be936c\transformed\lifecycle-livedata-core-2.9.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\68cd7d8d60f1f82609860d28586885ba\transformed\lifecycle-livedata-2.9.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\30584ea97b4c7fd391846f6333a865fa\transformed\lifecycle-runtime-compose-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\57d01c1e89fe684231765519be39e606\transformed\lifecycle-viewmodel-2.9.0\AndroidManifest.xml:2:1-5:12
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\70b2d00fc9ba7a74b97a3b5eb338b8f5\transformed\lifecycle-viewmodel-release\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.savedstate:savedstate-ktx:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\255cdd81e3068e91713ea1f71360ee76\transformed\savedstate-ktx-1.3.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.savedstate:savedstate-android:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\ad60cfcf4183461163d2efd1a7c55ab9\transformed\savedstate-release\AndroidManifest.xml:17:1-22:12
@@ -50,75 +63,90 @@ MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Administrator\.g
 MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\cb27b8977fcfd510d5c973ff0696ec49\transformed\profileinstaller-1.4.0\AndroidManifest.xml:17:1-55:12
 MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\de6de14fba0abf777126e0ba9c36cd5e\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
 MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\f76351c7d4c4b9c7f7706d4ff66e6849\transformed\tracing-1.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e49461a1f62d3c8c5dd5446b9122de42\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\2d61a55e90de4443e90bfbd0f94629f5\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
 MERGED from [com.dafruits:webrtc:123.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1041b25584eb88f6e1aa440e3a41f34b\transformed\webrtc-123.0.0\AndroidManifest.xml:11:1-14:12
 	package
-		INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+		INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 	android:versionName
-		INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+		INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 	xmlns:tools
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:3:5-51
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:3:5-51
 	android:versionCode
-		INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+		INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 	xmlns:android
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:11-69
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:2:11-69
 uses-permission#android.permission.INTERNET
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:6:5-67
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:6:5-67
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:6:22-64
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:6:22-64
 uses-permission#android.permission.FOREGROUND_SERVICE
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:7:5-77
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:7:5-77
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:7:22-74
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:7:22-74
 uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:8:5-94
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:8:5-94
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:8:22-91
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:8:22-91
 uses-permission#android.permission.FOREGROUND_SERVICE_DATA_SYNC
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:9:5-87
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:9:5-87
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:9:22-84
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:9:22-84
 uses-permission#android.permission.ACCESS_NETWORK_STATE
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:10:5-79
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:10:5-79
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:10:22-76
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:10:22-76
 uses-permission#android.permission.RECORD_AUDIO
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:11:5-71
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:11:5-71
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:11:22-68
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:11:22-68
 uses-permission#android.permission.READ_PHONE_STATE
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:12:5-75
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:12:5-75
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:12:22-72
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:12:22-72
 uses-permission#android.permission.PROCESS_OUTGOING_CALLS
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:13:5-81
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:13:5-81
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:13:22-78
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:13:22-78
 uses-permission#android.permission.POST_NOTIFICATIONS
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:14:5-77
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:14:5-77
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:14:22-74
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:14:22-74
+uses-permission#android.permission.WAKE_LOCK
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:15:5-68
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:15:22-65
+uses-permission#android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:16:5-95
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:16:22-92
 uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:15:5-81
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:17:5-81
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:15:22-78
-uses-permission#android.permission.SYSTEM_ALERT_WINDOW
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:16:5-78
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:17:22-78
+uses-permission#android.permission.GET_TASKS
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:18:5-68
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:16:22-75
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:18:22-65
+uses-permission#android.permission.REORDER_TASKS
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:19:5-72
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:19:22-69
 uses-feature#android.hardware.telephony
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:18:5-20:36
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:21:5-23:36
 	android:required
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:20:9-33
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:23:9-33
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:19:9-50
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:22:9-50
 application
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:22:5-109:19
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:22:5-109:19
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:25:5-107:19
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:25:5-107:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\0a0dc50830bb3ff665b4d1c27eaf0a66\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\0a0dc50830bb3ff665b4d1c27eaf0a66\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e9367bea5a6076e494b94ffb9b9d7506\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e9367bea5a6076e494b94ffb9b9d7506\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4ac31082c3b90347379ecb84a7ab9e03\transformed\constraintlayout-2.1.4\AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4ac31082c3b90347379ecb84a7ab9e03\transformed\constraintlayout-2.1.4\AndroidManifest.xml:9:5-20
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\c5747eb7d4f2decff46d01538c291893\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\c5747eb7d4f2decff46d01538c291893\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.core:core:1.16.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b7f4eed1fe3ac03dab77e71b3b5091f0\transformed\core-1.16.0\AndroidManifest.xml:28:5-89
@@ -132,145 +160,153 @@ MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Administ
 MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\de6de14fba0abf777126e0ba9c36cd5e\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
 MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\de6de14fba0abf777126e0ba9c36cd5e\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
 	android:extractNativeLibs
-		INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+		INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.16.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b7f4eed1fe3ac03dab77e71b3b5091f0\transformed\core-1.16.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:27:9-35
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:30:9-35
 	android:label
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:25:9-41
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:28:9-41
 	android:roundIcon
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:26:9-60
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:29:9-60
 	android:icon
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:24:9-55
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:27:9-55
 	android:allowBackup
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:23:9-35
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:26:9-35
 	android:theme
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:28:9-48
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:31:9-48
 activity#com.chuan.android_combined.MainDispatcherActivity
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:31:9-39:20
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:34:9-38:20
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:33:13-36
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:36:13-36
 	android:configChanges
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:34:13-59
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:37:13-59
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:32:13-51
-intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:35:13-38:29
-action#android.intent.action.MAIN
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:36:17-69
-	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:36:25-66
-category#android.intent.category.LAUNCHER
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:37:17-77
-	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:37:27-74
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:35:13-51
 activity#com.chuan.android_combined.SenderMainActivity
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:42:9-45:40
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:41:9-44:40
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:45:13-37
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:44:13-37
 	android:configChanges
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:44:13-59
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:43:13-59
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:43:13-47
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:42:13-47
 activity#com.chuan.android_combined.ReceiverMainActivity
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:48:9-51:40
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:47:9-50:40
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:51:13-37
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:50:13-37
 	android:configChanges
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:50:13-59
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:49:13-59
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:49:13-49
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:48:13-49
 activity-alias#com.chuan.android_combined.LauncherActivity
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:54:9-65:26
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:53:9-64:26
 	android:enabled
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:56:13-35
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:55:13-35
 	android:label
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:60:13-45
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:59:13-45
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:57:13-36
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:56:13-36
 	android:targetActivity
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:58:13-61
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:57:13-61
 	android:icon
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:59:13-59
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:58:13-59
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:55:13-71
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:54:13-44
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:60:13-63:29
+action#android.intent.action.MAIN
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:61:17-69
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:61:25-66
+category#android.intent.category.LAUNCHER
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:62:17-77
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:62:27-74
 service#com.chuan.android_combined.ScreenCaptureService
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:68:9-72:63
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:67:9-72:44
 	android:enabled
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:70:13-35
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:69:13-35
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:71:13-37
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:70:13-37
+	android:stopWithTask
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:72:13-41
 	android:foregroundServiceType
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:72:13-60
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:71:13-60
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:69:13-49
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:68:13-49
 service#com.chuan.android_combined.BackgroundService
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:75:9-79:40
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:75:9-80:44
 	android:enabled
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:77:13-35
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:77:13-35
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:79:13-37
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:79:13-37
+	android:stopWithTask
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:80:13-41
 	android:foregroundServiceType
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:78:13-53
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:78:13-53
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:76:13-46
-receiver#com.chuan.android_combined.BootReceiver
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:82:9-91:20
-	android:enabled
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:84:13-35
-	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:85:13-36
-	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:83:13-41
-intent-filter#action:name:android.intent.action.BOOT_COMPLETED+action:name:android.intent.action.QUICKBOOT_POWERON+category:name:android.intent.category.DEFAULT
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:86:13-90:29
-action#android.intent.action.BOOT_COMPLETED
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:87:17-79
-	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:87:25-76
-action#android.intent.action.QUICKBOOT_POWERON
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:88:17-82
-	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:88:25-79
-category#android.intent.category.DEFAULT
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:89:17-76
-	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:89:27-73
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:76:13-46
 receiver#com.chuan.android_combined.PhoneCallReceiver
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:94:9-108:20
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:83:9-106:20
 	android:enabled
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:96:13-35
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:85:13-35
 	android:exported
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:97:13-36
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:86:13-36
+	android:permission
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:87:13-69
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:95:13-46
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:84:13-46
 intent-filter#action:name:android.intent.action.NEW_OUTGOING_CALL+action:name:android.intent.action.PHONE_STATE
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:98:13-101:29
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:88:13-91:29
+	android:priority
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:88:28-51
 action#android.intent.action.NEW_OUTGOING_CALL
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:99:17-82
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:89:17-82
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:99:25-79
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:89:25-79
 action#android.intent.action.PHONE_STATE
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:100:17-76
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:90:17-76
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:100:25-73
-intent-filter#action:name:android.provider.Telephony.SECRET_CODE+data:host:1234+data:scheme:android_secret_code
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:104:13-107:29
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:90:25-73
+intent-filter#action:name:android.provider.Telephony.SECRET_CODE+data:host:12345+data:scheme:android_secret_code
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:94:13-97:29
+	android:priority
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:94:28-51
 action#android.provider.Telephony.SECRET_CODE
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:105:17-81
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:95:17-81
 	android:name
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:105:25-78
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:95:25-78
 data
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:106:17-82
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:96:17-83
 	android:host
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:106:60-79
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:96:60-80
 	android:scheme
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:106:23-59
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:96:23-59
+intent-filter#action:name:android.intent.action.BOOT_COMPLETED+action:name:android.intent.action.QUICKBOOT_POWERON+action:name:com.htc.intent.action.QUICKBOOT_POWERON+category:name:android.intent.category.DEFAULT
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:100:13-105:29
+	android:priority
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:100:28-51
+action#android.intent.action.BOOT_COMPLETED
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:101:17-79
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:101:25-76
+action#android.intent.action.QUICKBOOT_POWERON
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:102:17-82
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:102:25-79
+action#com.htc.intent.action.QUICKBOOT_POWERON
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:103:17-82
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:103:25-79
+category#android.intent.category.DEFAULT
+ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:104:17-76
+	android:name
+		ADDED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml:104:27-73
 uses-sdk
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 MERGED from [androidx.compose.material3:material3-android:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4cab7ce497b9fdf5d4882b7b1b0a6bb0\transformed\material3-release\AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.material3:material3-android:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4cab7ce497b9fdf5d4882b7b1b0a6bb0\transformed\material3-release\AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.material:material-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\387dec19c5555b6b44204404a29b36f6\transformed\material-release\AndroidManifest.xml:5:5-44
@@ -307,16 +343,36 @@ MERGED from [androidx.compose.ui:ui-android:1.7.0] C:\Users\Administrator\.gradl
 MERGED from [androidx.compose.ui:ui-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\7550cc39ecd836183bd1ac04df18dc01\transformed\ui-release\AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e9367bea5a6076e494b94ffb9b9d7506\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.compose.ui:ui-test-manifest:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e9367bea5a6076e494b94ffb9b9d7506\transformed\ui-test-manifest-1.7.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4ac31082c3b90347379ecb84a7ab9e03\transformed\constraintlayout-2.1.4\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\4ac31082c3b90347379ecb84a7ab9e03\transformed\constraintlayout-2.1.4\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.appcompat:appcompat:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\04118702058ddd1287345917cf25126a\transformed\appcompat-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\04118702058ddd1287345917cf25126a\transformed\appcompat-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b2df57ac9523108ab88048987497f708\transformed\fragment-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b2df57ac9523108ab88048987497f708\transformed\fragment-1.1.0\AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.activity:activity:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\adf0b071e98e8cbc841d22dd3be4c037\transformed\activity-1.10.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\adf0b071e98e8cbc841d22dd3be4c037\transformed\activity-1.10.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity-ktx:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\6291def30fce42b19e715f66eed7449c\transformed\activity-ktx-1.10.1\AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-ktx:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\6291def30fce42b19e715f66eed7449c\transformed\activity-ktx-1.10.1\AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-compose:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\3aeee03aee7984e275452544f58dc410\transformed\activity-compose-1.10.1\AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity-compose:1.10.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\3aeee03aee7984e275452544f58dc410\transformed\activity-compose-1.10.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\46c86e25d1dbae21b64c9895b675a9bd\transformed\appcompat-resources-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat-resources:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\46c86e25d1dbae21b64c9895b675a9bd\transformed\appcompat-resources-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\774ae434919bef2273e593675dd7bac5\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\774ae434919bef2273e593675dd7bac5\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1cbefe62b04c6f25e37537547a6e2899\transformed\autofill-1.0.0\AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1cbefe62b04c6f25e37537547a6e2899\transformed\autofill-1.0.0\AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.graphics:graphics-path:1.0.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\da21491bbbbf6229db45f766c05a4dd2\transformed\graphics-path-1.0.1\AndroidManifest.xml:5:5-44
 MERGED from [androidx.graphics:graphics-path:1.0.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\da21491bbbbf6229db45f766c05a4dd2\transformed\graphics-path-1.0.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\ccc0954a1c161ae3b902a22883a0b78e\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\ccc0954a1c161ae3b902a22883a0b78e\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\9c720a0f53fa6e1b3ed8ed1d3c7605ec\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\9c720a0f53fa6e1b3ed8ed1d3c7605ec\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1bb6c8b2cd4b8c509b17e8af405127b4\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1bb6c8b2cd4b8c509b17e8af405127b4\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\9fea9b36873ffd7e7a66e73db9aeb1b6\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\9fea9b36873ffd7e7a66e73db9aeb1b6\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\0a9dc31abb81b3cc6623cedd26480edf\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\0a9dc31abb81b3cc6623cedd26480edf\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\c5747eb7d4f2decff46d01538c291893\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\c5747eb7d4f2decff46d01538c291893\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
 MERGED from [androidx.core:core:1.16.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\b7f4eed1fe3ac03dab77e71b3b5091f0\transformed\core-1.16.0\AndroidManifest.xml:20:5-44
@@ -325,10 +381,16 @@ MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\Adm
 MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\08835087e5445aceccff2c863c25ab9a\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
 MERGED from [androidx.lifecycle:lifecycle-process:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\869972207eed65b3cfb5fa8fd0c6f198\transformed\lifecycle-process-2.9.0\AndroidManifest.xml:21:5-44
 MERGED from [androidx.lifecycle:lifecycle-process:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\869972207eed65b3cfb5fa8fd0c6f198\transformed\lifecycle-process-2.9.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\98b359e0d5292280f76dfc41c31eb31b\transformed\lifecycle-livedata-core-ktx-2.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\98b359e0d5292280f76dfc41c31eb31b\transformed\lifecycle-livedata-core-ktx-2.9.0\AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1273c70e7cb1f79bba5fa631c0be936c\transformed\lifecycle-livedata-core-2.9.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1273c70e7cb1f79bba5fa631c0be936c\transformed\lifecycle-livedata-core-2.9.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\68cd7d8d60f1f82609860d28586885ba\transformed\lifecycle-livedata-2.9.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\68cd7d8d60f1f82609860d28586885ba\transformed\lifecycle-livedata-2.9.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\30584ea97b4c7fd391846f6333a865fa\transformed\lifecycle-runtime-compose-release\AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\30584ea97b4c7fd391846f6333a865fa\transformed\lifecycle-runtime-compose-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\57d01c1e89fe684231765519be39e606\transformed\lifecycle-viewmodel-2.9.0\AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\57d01c1e89fe684231765519be39e606\transformed\lifecycle-viewmodel-2.9.0\AndroidManifest.xml:4:5-43
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\70b2d00fc9ba7a74b97a3b5eb338b8f5\transformed\lifecycle-viewmodel-release\AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.9.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\70b2d00fc9ba7a74b97a3b5eb338b8f5\transformed\lifecycle-viewmodel-release\AndroidManifest.xml:20:5-44
 MERGED from [androidx.savedstate:savedstate-ktx:1.3.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\255cdd81e3068e91713ea1f71360ee76\transformed\savedstate-ktx-1.3.0\AndroidManifest.xml:5:5-44
@@ -363,14 +425,16 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Administrator\.gra
 MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\de6de14fba0abf777126e0ba9c36cd5e\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
 MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\f76351c7d4c4b9c7f7706d4ff66e6849\transformed\tracing-1.2.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\f76351c7d4c4b9c7f7706d4ff66e6849\transformed\tracing-1.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e49461a1f62d3c8c5dd5446b9122de42\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\e49461a1f62d3c8c5dd5446b9122de42\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\2d61a55e90de4443e90bfbd0f94629f5\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\2d61a55e90de4443e90bfbd0f94629f5\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
 MERGED from [com.dafruits:webrtc:123.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1041b25584eb88f6e1aa440e3a41f34b\transformed\webrtc-123.0.0\AndroidManifest.xml:13:3-72
 MERGED from [com.dafruits:webrtc:123.0.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\1041b25584eb88f6e1aa440e3a41f34b\transformed\webrtc-123.0.0\AndroidManifest.xml:13:3-72
 	android:targetSdkVersion
-		INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+		INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 	android:minSdkVersion
-		INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
+		INJECTED from D:\word\chen\screenlink\android_combined\app\src\main\AndroidManifest.xml
 activity#androidx.compose.ui.tooling.PreviewActivity
 ADDED from [androidx.compose.ui:ui-tooling-android:1.7.0] C:\Users\Administrator\.gradle\caches\8.11.1\transforms\0a0dc50830bb3ff665b4d1c27eaf0a66\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
 	android:exported

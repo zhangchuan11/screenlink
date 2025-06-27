@@ -1,5 +1,12 @@
 R_DEF: Internal format may change without notice
 local
+id connect_button
+id sender_list
+id server_address
+id stats_text
+id status_text
+id surface_view
+layout activity_receiver_main
 string app_name
 style Theme.ScreenLink
 xml backup_rules

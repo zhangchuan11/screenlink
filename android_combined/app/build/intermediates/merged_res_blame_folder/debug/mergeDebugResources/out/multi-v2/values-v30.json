@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.chuan.android_combined.app-mergeDebugResources-45:/values-v30/values-v30.xml",
+            "outputFile": "com.chuan.android_combined.app-mergeDebugResources-50:/values-v30/values-v30.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Administrator\\.gradle\\caches\\8.11.1\\transforms\\4cab7ce497b9fdf5d4882b7b1b0a6bb0\\transformed\\material3-release\\res\\values-v30\\values-v30.xml",

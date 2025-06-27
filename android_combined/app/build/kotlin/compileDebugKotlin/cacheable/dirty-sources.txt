@@ -1,0 +1,7 @@
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\ReceiverMainActivity.kt
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\ScreenCaptureService.kt
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\PhoneCallReceiver.kt
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\BackgroundService.kt
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\SenderMainActivity.kt
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\AppIconUtils.kt
+D:\word\chen\screenlink\android_combined\app\src\main\java\com\chuan\android_combined\MainDispatcherActivity.kt

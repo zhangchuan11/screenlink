@@ -1,177 +1,149 @@
 package com.chuan.android_combined
 
 import android.app.Activity
-import android.content.ComponentName
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.Toast
+import android.widget.*
 import org.webrtc.*
 import org.java_websocket.client.WebSocketClient
 import org.java_websocket.handshake.ServerHandshake
 import org.json.JSONObject
 import java.net.URI
 import android.content.Context
-import android.app.ActivityManager
-import android.app.ActivityManager.RunningAppProcessInfo
+import android.graphics.Color
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import java.util.*
 
 class ReceiverMainActivity : Activity() {
     private lateinit var surfaceView: SurfaceViewRenderer
-    private lateinit var ipEditText: EditText
+    private lateinit var senderListView: ListView
+    private lateinit var statusTextView: TextView
+    private lateinit var refreshButton: Button
     private lateinit var connectButton: Button
-    private lateinit var infoTextView: Button
-    private lateinit var hideIconButton: Button
-    private lateinit var showDialCodeButton: Button
-    private lateinit var hideAndMinimizeButton: Button
+    private lateinit var serverAddressInput: EditText
     private var eglBase: EglBase? = null
     private var peerConnection: PeerConnection? = null
     private var ws: WebSocketClient? = null
     private var factory: PeerConnectionFactory? = null
     private var isConnected = false
-    private var serverAddress = "192.168.1.3:6060" // 默认服务器地址
-    private var isIconHidden = false
+    private var serverAddress = "192.168.168.102:6060" // 默认服务器地址
+    private var reconnectHandler: Handler? = null
+    private var reconnectRunnable: Runnable? = null
+    private var reconnectAttempts = 0
+    private val maxReconnectAttempts = 5
+    private val reconnectDelay = 3000L // 3秒
+    
+    // 发送端列表相关
+    private var senderList = mutableListOf<SenderInfo>()
+    private var selectedSenderId: Int? = null
+    private lateinit var senderAdapter: SenderListAdapter
+
+    private var statsTimer: Timer? = null
+    private var lastStatsTime = 0L
+    private var lastBytesReceived = 0L
+    private var previousFramesReceived = 0
+    private var noFrameChangeCount = 0
+    private var showDetailedStats = true
+    private var lastFramesDecoded = 0
+    private var statsTextView: TextView? = null
+
+    companion object {
+        private const val TAG = "ReceiverMainActivity"
+        private const val DEFAULT_SIGNALING_SERVER = "192.168.168.102:6060"
+    }
+    
+    // 发送端信息数据类
+    data class SenderInfo(
+        val id: Int,
+        val name: String,
+        val timestamp: Long,
+        val available: Boolean
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_receiver_main)
         
-        // 检查启动组件
-        checkLaunchComponent()
+        // 初始化UI组件
+        surfaceView = findViewById(R.id.surface_view)
+        statusTextView = findViewById(R.id.status_text)
+        senderListView = findViewById(R.id.sender_list)
+        connectButton = findViewById(R.id.connect_button)
+        serverAddressInput = findViewById(R.id.server_address)
         
-        // 检查 LauncherActivity 是否存在，并打印详细信息
-        debugCheckLauncherActivity()
+        // 初始化统计信息显示
+        statsTextView = findViewById(R.id.stats_text)
         
-        // 启动后台服务
-        BackgroundService.startService(this)
+        // 初始化发送端列表适配器
+        senderList = ArrayList()
+        senderAdapter = SenderListAdapter(this, senderList)
+        senderListView.adapter = senderAdapter
         
-        // 设置全屏
-        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
-        
-        // 创建动态布局
-        val layout = LinearLayout(this)
-        layout.orientation = LinearLayout.VERTICAL
-        
-        // 添加点击监听器，切换控件显示状态
-        layout.setOnClickListener {
-            if (isConnected && ipEditText.visibility == View.GONE) {
-                showControls()
-            } else if (isConnected) {
-                hideControls()
+        // 设置发送端列表点击事件
+        senderListView.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, _ ->
+            val sender = senderList[position]
+            val senderId = sender.id
+            
+            // 连接到选择的发送端
+            if (senderId != null) {
+                selectedSenderId = senderId
+                statusTextView.text = "正在连接到: ${sender.name}"
+                
+                // 发送选择发送端的消息
+                val json = JSONObject()
+                json.put("type", "select_sender")
+                json.put("senderId", senderId)
+                ws?.send(json.toString())
+                
+                Log.d(TAG, "已选择发送端: $senderId")
             }
         }
         
-        // 添加IP输入框
-        ipEditText = EditText(this)
-        ipEditText.hint = "输入服务器地址 (例如: 192.168.1.3:6060)"
-        ipEditText.setText(serverAddress)
-        layout.addView(ipEditText, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-        
-        // 添加连接按钮
-        connectButton = Button(this)
-        connectButton.text = "开始接收"
+        // 设置连接按钮点击事件
         connectButton.setOnClickListener {
-            if (!isConnected) {
-                serverAddress = ipEditText.text.toString()
-                if (serverAddress.isEmpty()) {
-                    showToastSafely("请输入服务器地址")
-                    return@setOnClickListener
-                }
-                connectToSignalingServer()
-                connectButton.text = "断开连接"
-                isConnected = true
-            } else {
+            if (isConnected) {
                 disconnectFromSignalingServer()
-                connectButton.text = "开始接收"
+                connectButton.text = "连接到服务器"
+                statusTextView.text = "已断开连接"
                 isConnected = false
+            } else {
+                val address = if (serverAddressInput.visibility == View.VISIBLE) {
+                    serverAddressInput.text.toString()
+                } else {
+                    DEFAULT_SIGNALING_SERVER
+                }
+                
+                connectToSignalingServer(address)
+                connectButton.text = "断开连接"
             }
         }
-        layout.addView(connectButton, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
         
-        // 添加状态信息文本
-        infoTextView = Button(this)
-        infoTextView.isEnabled = false
-        infoTextView.text = "等待连接..."
-        layout.addView(infoTextView, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-        
-        // 添加隐藏应用图标按钮
-        hideIconButton = Button(this)
-        updateHideIconButtonText()
-        hideIconButton.setOnClickListener {
-            toggleAppIconVisibility()
+        // 长按连接按钮显示服务器地址输入框
+        connectButton.setOnLongClickListener {
+            if (serverAddressInput.visibility == View.VISIBLE) {
+                serverAddressInput.visibility = View.GONE
+            } else {
+                serverAddressInput.visibility = View.VISIBLE
+                serverAddressInput.setText(DEFAULT_SIGNALING_SERVER)
+            }
+            true
         }
-        layout.addView(hideIconButton, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-        
-        // 添加隐藏图标并最小化按钮
-        hideAndMinimizeButton = Button(this)
-        hideAndMinimizeButton.text = "隐藏图标并最小化"
-        hideAndMinimizeButton.id = View.generateViewId() // 生成唯一 ID
-        hideAndMinimizeButton.setOnClickListener {
-            hideIconAndMinimize()
-        }
-        layout.addView(hideAndMinimizeButton, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-        
-        // 添加显示拨号码信息按钮
-        showDialCodeButton = Button(this)
-        showDialCodeButton.text = "如何通过拨号显示图标？"
-        showDialCodeButton.setOnClickListener {
-            showDialCodeInfo()
-        }
-        layout.addView(showDialCodeButton, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-        
-        // 添加视图渲染器
-        surfaceView = SurfaceViewRenderer(this)
-        val params = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            0,
-            1f
-        )
-        layout.addView(surfaceView, params)
-        
-        setContentView(layout)
         
         // 初始化WebRTC
         initializeWebRTC()
         
-        // 检查应用图标当前状态
-        checkAppIconStatus()
+        // 自动连接到默认服务器
+        connectToSignalingServer()
         
-        // 自动连接
-        serverAddress = ipEditText.text.toString()
-        if (serverAddress.isNotEmpty()) {
-            connectToSignalingServer()
-            connectButton.text = "断开连接"
-            isConnected = true
-        }
+        // 设置统计信息定时器
+        setupStatsTimer()
     }
 
     private fun initializeWebRTC() {
@@ -180,11 +152,24 @@ class ReceiverMainActivity : Activity() {
         surfaceView.init(eglBase!!.eglBaseContext, null)
         surfaceView.setZOrderMediaOverlay(true)
         surfaceView.setEnableHardwareScaler(true)
-        surfaceView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+        surfaceView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
         
         // 启用高质量渲染
         surfaceView.setMirror(false)
         surfaceView.setKeepScreenOn(true)
+        
+        // 确保SurfaceView可见
+        surfaceView.visibility = View.VISIBLE
+        
+        // 设置SurfaceView布局参数，确保足够大
+        val params = surfaceView.layoutParams
+        if (params != null) {
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT
+            params.height = ViewGroup.LayoutParams.MATCH_PARENT
+            surfaceView.layoutParams = params
+        }
+        
+        Log.d(TAG, "SurfaceView初始化完成")
         
         // 初始化PeerConnectionFactory
         val options = PeerConnectionFactory.InitializationOptions.builder(this)
@@ -198,16 +183,295 @@ class ReceiverMainActivity : Activity() {
         factory = PeerConnectionFactory.builder()
             .setVideoDecoderFactory(videoDecoderFactory)
             .setVideoEncoderFactory(videoEncoderFactory)
-            .setOptions(PeerConnectionFactory.Options().apply {
-                // 启用硬件加速解码
-                disableEncryption = false
-                disableNetworkMonitor = false
-            })
             .createPeerConnectionFactory()
+            
+        Log.d(TAG, "WebRTC初始化完成")
     }
 
-    private fun setupPeerConnection() {
-        // 配置PeerConnection
+    private fun initReconnectMechanism() {
+        reconnectHandler = Handler(Looper.getMainLooper())
+        reconnectRunnable = object : Runnable {
+            override fun run() {
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    Log.d(TAG, "尝试重连，第 ${reconnectAttempts + 1} 次")
+                    reconnectAttempts++
+                    connectToSignalingServer()
+                } else {
+                    Log.e(TAG, "重连失败，已达到最大重试次数")
+                    runOnUiThread {
+                        Toast.makeText(this@ReceiverMainActivity, "连接失败，请检查网络", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun connectToSignalingServer(address: String = DEFAULT_SIGNALING_SERVER) {
+        serverAddress = address
+        val wsUrl = "ws://$serverAddress"
+        ws = object : WebSocketClient(URI(wsUrl)) {
+            override fun onOpen(handshakedata: ServerHandshake?) {
+                runOnUiThread {
+                    Log.d(TAG, "已连接到信令服务器")
+                    statusTextView.text = "已连接到服务器，正在获取发送端列表..."
+                    reconnectAttempts = 0 // 重置重连计数
+                    requestSenderList()
+                }
+            }
+            
+            override fun onMessage(msg: String) {
+                try {
+                    Log.d(TAG, "收到WebSocket消息: $msg")
+                    val json = JSONObject(msg)
+                    Log.d(TAG, "收到消息类型: ${json.getString("type")}")
+                    
+                    when (json.getString("type")) {
+                        "sender_list" -> {
+                            handleSenderList(json)
+                        }
+                        "sender_list_update" -> {
+                            handleSenderList(json)
+                        }
+                        "offer" -> {
+                            Log.d(TAG, "收到offer，开始处理")
+                            
+                            // 如果还没有创建PeerConnection，先创建
+                            if (peerConnection == null) {
+                                Log.d(TAG, "创建新的PeerConnection")
+                                createPeerConnection()
+                            } else {
+                                Log.d(TAG, "使用现有的PeerConnection")
+                            }
+                            
+                            val sdp = SessionDescription(
+                                SessionDescription.Type.OFFER, 
+                                json.getString("sdp")
+                            )
+                            Log.d(TAG, "设置远程描述: ${sdp.description.substring(0, 100)}...")
+                            
+                            // 检查SDP中是否包含视频轨道
+                            if (sdp.description.contains("m=video")) {
+                                Log.d(TAG, "SDP中包含视频轨道")
+                            } else {
+                                Log.w(TAG, "SDP中不包含视频轨道")
+                            }
+                            
+                            peerConnection?.setRemoteDescription(SimpleSdpObserver(), sdp)
+                            
+                            // 创建answer
+                            val constraints = MediaConstraints().apply {
+                                mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+                                mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"))
+                            }
+                            
+                            Log.d(TAG, "开始创建answer")
+                            peerConnection?.createAnswer(object : SdpObserver {
+                                override fun onCreateSuccess(sessionDescription: SessionDescription) {
+                                    Log.d(TAG, "Answer创建成功，设置本地描述")
+                                    Log.d(TAG, "Answer SDP: ${sessionDescription.description}")
+                                    
+                                    // 检查Answer SDP中是否包含视频轨道
+                                    if (sessionDescription.description.contains("m=video")) {
+                                        Log.d(TAG, "Answer SDP中包含视频轨道")
+                                    } else {
+                                        Log.w(TAG, "Answer SDP中不包含视频轨道")
+                                    }
+                                    
+                                    peerConnection?.setLocalDescription(object : SdpObserver {
+                                        override fun onSetSuccess() {
+                                            val answer = JSONObject()
+                                            answer.put("type", "answer")
+                                            answer.put("sdp", sessionDescription.description)
+                                            answer.put("selectedSenderId", selectedSenderId)
+                                            val answerJson = answer.toString()
+                                            ws?.send(answerJson)
+                                            Log.d(TAG, "Answer已发送，selectedSenderId: $selectedSenderId")
+                                            Log.d(TAG, "Answer内容: ${answerJson.substring(0, Math.min(100, answerJson.length))}...")
+                                        }
+                                        override fun onCreateSuccess(p0: SessionDescription?) {}
+                                        override fun onCreateFailure(p0: String?) {}
+                                        override fun onSetFailure(p0: String?) {
+                                            runOnUiThread {
+                                                Log.e(TAG, "设置本地描述失败")
+                                            }
+                                        }
+                                    }, sessionDescription)
+                                }
+                                override fun onSetSuccess() {}
+                                override fun onCreateFailure(error: String?) {
+                                    runOnUiThread {
+                                        Log.e(TAG, "创建answer失败: $error")
+                                    }
+                                }
+                                override fun onSetFailure(error: String?) {}
+                            }, constraints)
+                        }
+                        "candidate" -> {
+                            Log.d(TAG, "收到candidate消息")
+                            val candidate = IceCandidate(
+                                json.getString("id"), 
+                                json.getInt("label"), 
+                                json.getString("candidate")
+                            )
+                            Log.d(TAG, "ICE候选: ${candidate.sdp}")
+                            if (peerConnection != null) {
+                                peerConnection?.addIceCandidate(candidate)
+                                Log.d(TAG, "ICE候选已添加")
+                            } else {
+                                Log.w(TAG, "收到ICE候选但PeerConnection尚未创建，忽略")
+                            }
+                        }
+                        "connection_confirm" -> {
+                            Log.d(TAG, "收到连接确认消息")
+                            // 发送回应确认连接状态
+                            val confirm = JSONObject()
+                            confirm.put("type", "connection_ack")
+                            confirm.put("timestamp", System.currentTimeMillis())
+                            ws?.send(confirm.toString())
+                        }
+                        "error" -> {
+                            runOnUiThread {
+                                val errorMsg = json.optString("message", "未知错误")
+                                Toast.makeText(this@ReceiverMainActivity, "错误: $errorMsg", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "服务器错误: $errorMsg")
+                            }
+                        }
+                        "info" -> {
+                            Log.d(TAG, "服务器信息: ${json.optString("message", "")}")
+                        }
+                        else -> {
+                            Log.d(TAG, "收到未处理的消息类型: ${json.getString("type")}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread {
+                        Log.e(TAG, "处理消息失败: ${e.message}")
+                    }
+                }
+            }
+            
+            override fun onClose(code: Int, reason: String?, remote: Boolean) {
+                runOnUiThread {
+                    Log.d(TAG, "信令服务器连接已关闭: $reason")
+                    statusTextView.text = "连接已断开"
+                    isConnected = false
+                    
+                    // 如果不是主动关闭，尝试重连
+                    if (remote && reconnectAttempts < maxReconnectAttempts) {
+                        Log.d(TAG, "连接被服务器关闭，准备重连")
+                        reconnectHandler?.postDelayed(reconnectRunnable!!, reconnectDelay)
+                    }
+                }
+            }
+            
+            override fun onError(ex: Exception?) {
+                runOnUiThread {
+                    Log.e(TAG, "信令服务器连接失败: ${ex?.message}")
+                    statusTextView.text = "连接失败"
+                    isConnected = false
+                    
+                    // 连接错误时尝试重连
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        Log.d(TAG, "连接错误，准备重连")
+                        reconnectHandler?.postDelayed(reconnectRunnable!!, reconnectDelay)
+                    }
+                }
+            }
+        }
+        
+        try {
+            ws?.connect()
+        } catch (e: Exception) {
+            Log.e(TAG, "连接WebSocket失败", e)
+            // 连接失败时尝试重连
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectHandler?.postDelayed(reconnectRunnable!!, reconnectDelay)
+            }
+        }
+    }
+
+    private fun requestSenderList() {
+        val request = JSONObject()
+        request.put("type", "request_senders")
+        ws?.send(request.toString())
+        Log.d(TAG, "已请求发送端列表")
+    }
+
+    private fun handleSenderList(json: JSONObject) {
+        try {
+            val sendersArray = json.getJSONArray("senders")
+            senderList.clear()
+            val myId = getMyId() // 新增：获取本机ID
+            
+            for (i in 0 until sendersArray.length()) {
+                val senderJson = sendersArray.getJSONObject(i)
+                val id = senderJson.getInt("id")
+                if (id == myId) continue // 跳过本机ID
+                val sender = SenderInfo(
+                    id = id,
+                    name = senderJson.getString("name"),
+                    timestamp = senderJson.getLong("timestamp"),
+                    available = senderJson.getBoolean("available")
+                )
+                senderList.add(sender)
+            }
+            
+            runOnUiThread {
+                senderAdapter.notifyDataSetChanged()
+                statusTextView.text = "发现 ${senderList.size} 个发送端"
+                Log.d(TAG, "发送端列表已更新，共${senderList.size}个")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "处理发送端列表失败", e)
+        }
+    }
+
+    // 获取本机ID（可根据实际情况实现，比如用设备唯一标识或配置）
+    private fun getMyId(): Int {
+        // TODO: 替换为实际的本机ID获取逻辑
+        return -1 // 默认-1表示无效，不会过滤任何ID
+    }
+
+    private fun selectSender(senderId: Int) {
+        selectedSenderId = senderId
+        val sender = senderList.find { it.id == senderId }
+        
+        if (sender != null) {
+            statusTextView.text = "正在连接发送端: ${sender.name}"
+            Log.d(TAG, "开始选择发送端: ${sender.name} (ID: $senderId)")
+            
+            val selectRequest = JSONObject()
+            selectRequest.put("type", "select_sender")
+            selectRequest.put("senderId", senderId)
+            ws?.send(selectRequest.toString())
+            
+            Log.d(TAG, "已发送选择发送端请求: $selectRequest")
+        } else {
+            Log.e(TAG, "未找到发送端: $senderId")
+            Toast.makeText(this, "发送端不存在", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun disconnectFromSignalingServer() {
+        // 停止重连
+        reconnectRunnable?.let { reconnectHandler?.removeCallbacks(it) }
+        
+        peerConnection?.close()
+        peerConnection = null
+        
+        ws?.close()
+        ws = null
+        
+        Log.d(TAG, "已断开连接")
+        
+        // 新增：断开后自动重连
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d(TAG, "断开后自动尝试重连...")
+            connectToSignalingServer()
+        }, 2000)
+    }
+
+    private fun createPeerConnection() {
         val rtcConfig = PeerConnection.RTCConfiguration(emptyList()).apply {
             bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
@@ -216,6 +480,7 @@ class ReceiverMainActivity : Activity() {
         
         peerConnection = factory!!.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
             override fun onIceCandidate(candidate: IceCandidate) {
+                Log.d(TAG, "生成ICE候选: ${candidate.sdp}")
                 val json = JSONObject()
                 json.put("type", "candidate")
                 json.put("label", candidate.sdpMLineIndex)
@@ -224,258 +489,208 @@ class ReceiverMainActivity : Activity() {
                 ws?.send(json.toString())
             }
             
-            override fun onTrack(transceiver: RtpTransceiver?) {
-                val remoteVideoTrack = transceiver?.receiver?.track() as? VideoTrack
-                remoteVideoTrack?.let { videoTrack ->
-                    runOnUiThread {
-                        videoTrack.addSink(surfaceView)
-                        infoTextView.text = "视频流已连接"
-                        // 视频连接成功后隐藏控件
-                        hideControls()
-                    }
-                }
+            override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {
+                val count = candidates?.size ?: 0
+                Log.d(TAG, "ICE候选已移除: ${count}个")
+            }
+            
+            override fun onSignalingChange(state: PeerConnection.SignalingState?) {
+                Log.d(TAG, "信令状态变化: $state")
             }
             
             override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
-                runOnUiThread {
-                    when (state) {
-                        PeerConnection.IceConnectionState.CONNECTED -> {
-                            infoTextView.text = "已连接"
-                        }
-                        PeerConnection.IceConnectionState.DISCONNECTED, 
-                        PeerConnection.IceConnectionState.FAILED,
-                        PeerConnection.IceConnectionState.CLOSED -> {
-                            infoTextView.text = "连接状态: $state"
-                            showControls() // 连接断开时显示控件
-                        }
-                        else -> {}
-                    }
+                state?.let { onIceConnectionStateChanged(it) }
+            }
+            
+            override fun onIceConnectionReceivingChange(receiving: Boolean) {
+                Log.d(TAG, "ICE接收状态变化: $receiving")
+            }
+            
+            override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
+                Log.d(TAG, "ICE收集状态: $state")
+            }
+            
+            override fun onAddStream(stream: MediaStream?) {
+                if (stream != null) {
+                    Log.d(TAG, "添加媒体流: ${stream.id}")
+                } else {
+                    Log.d(TAG, "添加媒体流: null")
                 }
             }
             
-            // 其它必要的实现
-            override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {}
-            override fun onSignalingChange(state: PeerConnection.SignalingState?) {}
-            override fun onIceConnectionReceivingChange(receiving: Boolean) {}
-            override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {}
-            override fun onAddStream(stream: MediaStream?) {}
-            override fun onRemoveStream(stream: MediaStream?) {}
-            override fun onDataChannel(dataChannel: DataChannel?) {}
-            override fun onRenegotiationNeeded() {}
-            override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {}
+            override fun onRemoveStream(stream: MediaStream?) {
+                if (stream != null) {
+                    Log.d(TAG, "移除媒体流: ${stream.id}")
+                } else {
+                    Log.d(TAG, "移除媒体流: null")
+                }
+            }
+            
+            override fun onDataChannel(dataChannel: DataChannel?) {
+                if (dataChannel != null) {
+                    Log.d(TAG, "数据通道: ${dataChannel.label()}")
+                } else {
+                    Log.d(TAG, "数据通道: null")
+                }
+            }
+            
+            override fun onRenegotiationNeeded() {
+                Log.d(TAG, "需要重新协商")
+            }
+            
+            override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {
+                val trackKind = receiver?.track()?.kind() ?: "null"
+                val streamCount = streams?.size ?: 0
+                Log.d(TAG, "添加轨道: $trackKind, 流数量: $streamCount")
+            }
+            
+            override fun onTrack(transceiver: RtpTransceiver?) {
+                val trackKind = transceiver?.receiver?.track()?.kind() ?: "null"
+                Log.d(TAG, "收到轨道事件: $trackKind")
+                runOnUiThread {
+                    val track = transceiver?.receiver?.track()
+                    if (track is VideoTrack) {
+                        Log.d(TAG, "开始添加视频轨道到SurfaceView")
+                        Log.d(TAG, "视频轨道ID: ${track.id()}")
+                        Log.d(TAG, "视频轨道状态: ${track.state()}")
+                        
+                        // 确保SurfaceView已经初始化
+                        if (!surfaceView.isEnabled) {
+                            Log.w(TAG, "SurfaceView未启用，尝试重新初始化")
+                            surfaceView.init(eglBase!!.eglBaseContext, null)
+                        }
+                        
+                        // 设置SurfaceView为最高优先级
+                        surfaceView.setZOrderOnTop(false)
+                        surfaceView.setZOrderMediaOverlay(true)
+                        
+                        // 调整视频渲染参数
+                        surfaceView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                        surfaceView.setEnableHardwareScaler(true)
+                        
+                        // 立即使SurfaceView可见并放大
+                        surfaceView.visibility = View.VISIBLE
+                        
+                        // 添加视频轨道到SurfaceView
+                        track.addSink(surfaceView)
+                        Log.d(TAG, "视频流已接收并添加到SurfaceView")
+                        
+                        // 强制刷新SurfaceView
+                        surfaceView.requestLayout()
+                        surfaceView.invalidate()
+                        
+                        // 确保视频帧正常渲染
+                        surfaceView.clearImage()  // 清除之前的图像
+                        surfaceView.release()     // 释放旧资源
+                        surfaceView.init(eglBase!!.eglBaseContext, null)  // 重新初始化
+                        track.addSink(surfaceView)  // 重新添加视频轨道
+                        
+                        Log.d(TAG, "视频渲染已重置并重新配置")
+                        statusTextView.text = "正在显示发送端画面"
+                        
+                    } else {
+                        val kind = track?.kind() ?: "null"
+                        Log.w(TAG, "收到非视频轨道: $kind")
+                    }
+                }
+            }
         })
-        
-        // 创建音频轨道的约束条件
-        val audioConstraints = MediaConstraints()
-        
-        // 创建音频源和轨道
-        val audioSource = factory!!.createAudioSource(audioConstraints)
-        val localAudioTrack = factory!!.createAudioTrack("audio-track", audioSource)
-        
-        // 添加轨道到PeerConnection
-        peerConnection!!.addTrack(localAudioTrack)
     }
 
-    private fun connectToSignalingServer() {
-        val wsUrl = "ws://$serverAddress"
-        ws = object : WebSocketClient(URI(wsUrl)) {
-            override fun onOpen(handshakedata: ServerHandshake?) {
+    private fun onIceConnectionStateChanged(state: PeerConnection.IceConnectionState) {
+        Log.d(TAG, "ICE连接状态变化: $state")
+        
+        when (state) {
+            PeerConnection.IceConnectionState.CONNECTED -> {
                 runOnUiThread {
-                    infoTextView.text = "已连接到信令服务器"
-                    Toast.makeText(this@ReceiverMainActivity, "已连接到信令服务器", Toast.LENGTH_SHORT).show()
-                }
-                setupPeerConnection()
-            }
-            
-            override fun onMessage(msg: String) {
-                try {
-                    val json = JSONObject(msg)
-                    when (json.getString("type")) {
-                        "offer" -> {
-                            val sessionDescription = SessionDescription(
-                                SessionDescription.Type.OFFER,
-                                json.getString("sdp")
-                            )
-                            
-                            // 优化SDP以接收高清视频
-                            val optimizedSdp = sessionDescription.description
-                                .replace("useinbandfec=1", "useinbandfec=1; stereo=1; maxaveragebitrate=4000000")
-                                .replace("x-google-min-bitrate=0", "x-google-min-bitrate=1500")
-                                .replace("x-google-start-bitrate=0", "x-google-start-bitrate=2500")
-                                .replace("x-google-max-bitrate=0", "x-google-max-bitrate=4000")
-                            
-                            val optimizedSessionDescription = SessionDescription(
-                                SessionDescription.Type.OFFER,
-                                optimizedSdp
-                            )
-                            
-                            peerConnection?.setRemoteDescription(SimpleSdpObserver(), optimizedSessionDescription)
-                            createAnswer()
-                        }
-                        "candidate" -> {
-                            val candidate = IceCandidate(
-                                json.getString("id"),
-                                json.getInt("label"),
-                                json.getString("candidate")
-                            )
-                            peerConnection?.addIceCandidate(candidate)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("ReceiverMainActivity", "信令处理错误", e)
-                    runOnUiThread {
-                        Toast.makeText(this@ReceiverMainActivity, "处理消息失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
+                    Log.d(TAG, "ICE连接已建立，应该开始接收视频流")
+                    checkAndResetVideoTrack()
+                    
+                    // 发送确认连接消息
+                    val json = JSONObject()
+                    json.put("type", "receiver_connected")
+                    json.put("timestamp", System.currentTimeMillis())
+                    json.put("senderId", selectedSenderId)
+                    ws?.send(json.toString())
+                    Log.d(TAG, "已发送连接确认消息")
                 }
             }
-            
-            override fun onClose(code: Int, reason: String?, remote: Boolean) {
+            PeerConnection.IceConnectionState.DISCONNECTED, 
+            PeerConnection.IceConnectionState.FAILED -> {
                 runOnUiThread {
-                    infoTextView.text = "信令服务器连接已关闭"
-                    Toast.makeText(this@ReceiverMainActivity, "连接已关闭", Toast.LENGTH_SHORT).show()
-                    isConnected = false
-                    connectButton.text = "开始接收"
-                    showControls() // 连接关闭时显示控件
+                    statusTextView.text = "连接已断开，正在尝试重连..."
+                    scheduleReconnection()
                 }
             }
-            
-            override fun onError(ex: Exception?) {
-                runOnUiThread {
-                    infoTextView.text = "信令服务器连接错误"
-                    Toast.makeText(this@ReceiverMainActivity, "连接错误: ${ex?.message}", Toast.LENGTH_SHORT).show()
-                    isConnected = false
-                    connectButton.text = "开始接收"
-                    showControls() // 连接错误时显示控件
-                }
+            else -> {
+                // 其他状态不处理
             }
         }
-        
-        ws?.connect()
     }
-
-    private fun createAnswer() {
-        val constraints = MediaConstraints().apply {
-            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
-            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
-            // 添加高清视频约束
-            optional.add(MediaConstraints.KeyValuePair("internalSctpDataChannels", "true"))
-            optional.add(MediaConstraints.KeyValuePair("DtlsSrtpKeyAgreement", "true"))
-        }
-        
-        peerConnection?.createAnswer(object : SdpObserver {
-            override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                // 优化SDP以支持高清视频
-                val optimizedSdp = sessionDescription.description
-                    .replace("useinbandfec=1", "useinbandfec=1; stereo=1; maxaveragebitrate=4000000")
-                    .replace("x-google-min-bitrate=0", "x-google-min-bitrate=1500")
-                    .replace("x-google-start-bitrate=0", "x-google-start-bitrate=2500")
-                    .replace("x-google-max-bitrate=0", "x-google-max-bitrate=4000")
-                
-                val optimizedSessionDescription = SessionDescription(
-                    SessionDescription.Type.ANSWER,
-                    optimizedSdp
-                )
-                
-                peerConnection?.setLocalDescription(object : SdpObserver {
-                    override fun onSetSuccess() {
-                        val answer = JSONObject()
-                        answer.put("type", "answer")
-                        answer.put("sdp", optimizedSessionDescription.description)
-                        ws?.send(answer.toString())
-                    }
-                    
-                    override fun onCreateSuccess(p0: SessionDescription?) {}
-                    override fun onCreateFailure(p0: String?) {}
-                    
-                    override fun onSetFailure(error: String?) {
-                        runOnUiThread {
-                            Toast.makeText(this@ReceiverMainActivity, "设置本地描述失败: $error", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }, optimizedSessionDescription)
-            }
-            
-            override fun onCreateFailure(error: String?) {
-                runOnUiThread {
-                    Toast.makeText(this@ReceiverMainActivity, "创建应答失败: $error", Toast.LENGTH_SHORT).show()
-                }
-            }
-            
-            override fun onSetSuccess() {}
-            override fun onSetFailure(p0: String?) {}
-        }, constraints)
-    }
-
-    private fun disconnectFromSignalingServer() {
+    
+    // 检查并重置视频轨道，确保视频正常显示
+    private fun checkAndResetVideoTrack() {
         try {
-            // 关闭 PeerConnection
-            try {
-                peerConnection?.close()
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "关闭 PeerConnection 时出错", e)
-            }
-            peerConnection = null
+            Log.d(TAG, "检查视频轨道状态...")
             
-            // 关闭 WebSocket
-            try {
-                ws?.close()
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "关闭 WebSocket 时出错", e)
-            }
-            ws = null
+            val receivers = peerConnection?.getReceivers()
+            val videoReceiver = receivers?.find { it.track()?.kind() == "video" }
             
-            // 更新 UI
-            runOnUiThread {
-                try {
-                    infoTextView.text = "已断开连接"
-                    showControls() // 断开连接时显示控件
-                } catch (e: Exception) {
-                    Log.e("ReceiverMainActivity", "更新 UI 时出错", e)
+            if (videoReceiver != null) {
+                val videoTrack = videoReceiver.track() as? VideoTrack
+                if (videoTrack != null) {
+                    Log.d(TAG, "找到视频轨道: ${videoTrack.id()}, 状态: ${videoTrack.state()}")
+                    
+                    // 清理之前的渲染器
+                    surfaceView.release()
+                    
+                    // 重新初始化渲染器
+                    surfaceView.init(eglBase!!.eglBaseContext, null)
+                    surfaceView.setZOrderMediaOverlay(true)
+                    surfaceView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                    surfaceView.setEnableHardwareScaler(true)
+                    surfaceView.setMirror(false)
+                    
+                    // 确保SurfaceView大小正确
+                    val params = surfaceView.layoutParams
+                    params.width = ViewGroup.LayoutParams.MATCH_PARENT
+                    params.height = ViewGroup.LayoutParams.MATCH_PARENT
+                    surfaceView.layoutParams = params
+                    
+                    // 清除之前的图像
+                    surfaceView.clearImage()
+                    
+                    // 将视频轨道连接到渲染器
+                    videoTrack.addSink(surfaceView)
+                    
+                    // 强制刷新布局
+                    surfaceView.requestLayout()
+                    
+                    Log.d(TAG, "已重新添加视频轨道到SurfaceView")
+                    statusTextView.text = "正在接收视频流"
+                } else {
+                    Log.w(TAG, "找到接收器但没有视频轨道")
+                    statusTextView.text = "视频轨道不可用"
                 }
+            } else {
+                Log.w(TAG, "未找到视频接收器")
+                statusTextView.text = "未找到视频接收器"
             }
-            
-            Log.d("ReceiverMainActivity", "已断开与信令服务器的连接")
         } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "断开连接时出错", e)
+            Log.e(TAG, "检查视频轨道时出错", e)
+            statusTextView.text = "视频处理错误"
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        disconnectFromSignalingServer()
+        surfaceView.release()
+        eglBase?.release()
+        factory?.dispose()
         
-        try {
-            // 先释放 WebRTC 相关资源
-            disconnectFromSignalingServer()
-            
-            // 确保在主线程中释放视图资源
-            runOnUiThread {
-                try {
-                    surfaceView.release()
-                } catch (e: Exception) {
-                    Log.e("ReceiverMainActivity", "释放 surfaceView 时出错", e)
-                }
-            }
-            
-            // 释放其他资源
-            try {
-                eglBase?.release()
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "释放 eglBase 时出错", e)
-            }
-            
-            try {
-                factory?.dispose()
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "释放 factory 时出错", e)
-            }
-            
-            eglBase = null
-            factory = null
-            
-            Log.d("ReceiverMainActivity", "所有资源已释放")
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "onDestroy 时出错", e)
-        }
+        eglBase = null
+        factory = null
     }
     
     class SimpleSdpObserver : SdpObserver {
@@ -484,323 +699,239 @@ class ReceiverMainActivity : Activity() {
         override fun onCreateFailure(error: String?) {}
         override fun onSetFailure(error: String?) {}
     }
+    
+    // 发送端列表适配器
+    inner class SenderListAdapter(
+        context: Context,
+        private val senders: List<SenderInfo>
+    ) : ArrayAdapter<SenderInfo>(context, 0, senders) {
+        
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val view = convertView ?: LayoutInflater.from(context)
+                .inflate(android.R.layout.simple_list_item_1, parent, false)
+            
+            val sender = senders[position]
+            val textView = view.findViewById<TextView>(android.R.id.text1)
+            
+            val status = if (sender.available) "可用" else "不可用"
+            val color = if (sender.available) Color.GREEN else Color.RED
+            
+            textView.text = "${sender.name} (ID: ${sender.id}) - $status"
+            textView.setTextColor(color)
+            
+            return view
+        }
+    }
 
-    // 在视频连接成功后隐藏控件，只显示视频
-    private fun hideControls() {
-        runOnUiThread {
-            try {
-                ipEditText.visibility = View.GONE
-                connectButton.visibility = View.GONE
-                infoTextView.visibility = View.GONE
-                hideIconButton.visibility = View.GONE
-                showDialCodeButton.visibility = View.GONE
-                hideAndMinimizeButton.visibility = View.GONE
-                
-                // 重新设置surfaceView为全屏
-                val params = surfaceView.layoutParams as? LinearLayout.LayoutParams
-                params?.let {
-                    it.height = LinearLayout.LayoutParams.MATCH_PARENT
-                    it.weight = 1f
-                    surfaceView.layoutParams = it
-                }
-                
-                Log.d("ReceiverMainActivity", "控件已隐藏")
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "隐藏控件时出错", e)
-            }
-        }
-    }
-    
-    // 显示控件
-    private fun showControls() {
-        runOnUiThread {
-            try {
-                ipEditText.visibility = View.VISIBLE
-                connectButton.visibility = View.VISIBLE
-                infoTextView.visibility = View.VISIBLE
-                hideIconButton.visibility = View.VISIBLE
-                showDialCodeButton.visibility = View.VISIBLE
-                hideAndMinimizeButton.visibility = View.VISIBLE
-                
-                // 恢复surfaceView的布局
-                val params = surfaceView.layoutParams as? LinearLayout.LayoutParams
-                params?.let {
-                    it.height = 0
-                    it.weight = 1f
-                    surfaceView.layoutParams = it
-                }
-                
-                Log.d("ReceiverMainActivity", "控件已显示")
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "显示控件时出错", e)
-            }
-        }
-    }
-    
-    // 切换应用图标的可见性
-    private fun toggleAppIconVisibility() {
+    /**
+     * 发送连接确认消息
+     */
+    private fun sendConnectionConfirm() {
         try {
-            val packageManager = packageManager
-            val componentName = ComponentName(packageName, packageName + ".LauncherActivity")
-            
-            // 获取当前组件状态
-            val currentState = try {
-                packageManager.getComponentEnabledSetting(componentName)
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "获取组件状态失败", e)
-                showToastSafely("无法获取应用图标状态")
-                return
-            }
-            
-            // 根据当前状态切换
-            if (currentState == PackageManager.COMPONENT_ENABLED_STATE_DISABLED || 
-                currentState == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT) {
-                // 当前是隐藏状态，需要显示
-                packageManager.setComponentEnabledSetting(
-                    componentName,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-                isIconHidden = false
-                Log.d("ReceiverMainActivity", "应用图标已显示")
-                
-                // 启动后台服务
-                BackgroundService.startService(this)
-            } else {
-                // 当前是显示状态，需要隐藏
-                packageManager.setComponentEnabledSetting(
-                    componentName,
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                    PackageManager.DONT_KILL_APP
-                )
-                isIconHidden = true
-                Log.d("ReceiverMainActivity", "应用图标已隐藏")
-                
-                // 确保后台服务仍在运行
-                BackgroundService.startService(this)
-            }
-            
-            updateHideIconButtonText()
-            showToastSafely(if (isIconHidden) "应用图标已隐藏" else "应用图标已显示")
+            val confirm = JSONObject()
+            confirm.put("type", "receiver_connected")
+            confirm.put("timestamp", System.currentTimeMillis())
+            confirm.put("senderId", selectedSenderId)
+            ws?.send(confirm.toString())
+            Log.d(TAG, "已发送连接确认消息")
         } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "切换应用图标可见性时出错", e)
-            showToastSafely("操作失败: ${e.message}")
+            Log.e(TAG, "发送连接确认失败", e)
         }
     }
     
-    // 隐藏应用图标并最小化应用
-    private fun hideIconAndMinimize() {
-        try {
-            // 先隐藏图标
-            val packageManager = packageManager
-            val componentName = ComponentName(packageName, packageName + ".LauncherActivity")
-            
-            packageManager.setComponentEnabledSetting(
-                componentName,
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
-            isIconHidden = true
-            updateHideIconButtonText()
-            
-            // 确保后台服务在运行
-            BackgroundService.startService(this)
-            
-            // 最小化应用
-            moveTaskToBack(true)
-            
-            Log.d("ReceiverMainActivity", "应用图标已隐藏，应用已最小化")
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "隐藏图标并最小化时出错", e)
-        }
+    /**
+     * 安排重新连接
+     */
+    private fun scheduleReconnection() {
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!isConnected && selectedSenderId != null) {
+                Log.d(TAG, "尝试重新连接到发送端")
+                // 重新请求发送端列表
+                requestSenderList()
+                // 重新选择之前的发送端
+                Handler(Looper.getMainLooper()).postDelayed({
+                    if (senderList.any { it.id == selectedSenderId }) {
+                        Log.d(TAG, "重新选择发送端: $selectedSenderId")
+                        selectSender(selectedSenderId!!)
+                    } else {
+                        Log.d(TAG, "之前选择的发送端不可用")
+                    }
+                }, 1000) // 延迟1秒，等待发送端列表刷新
+            }
+        }, 3000) // 3秒后尝试重连
     }
-    
-    override fun onBackPressed() {
-        // 如果应用图标已隐藏，则只是最小化应用，不退出
-        if (isIconHidden) {
-            moveTaskToBack(true)
-        } else {
-            super.onBackPressed()
-        }
-    }
-    
-    // 安全地显示 Toast 消息
-    private fun showToastSafely(message: String) {
-        try {
-            // 检查应用是否在前台
-            if (isAppInForeground()) {
-                // 确保在主线程中显示 Toast
-                runOnUiThread {
-                    try {
-                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        Log.e("ReceiverMainActivity", "显示 Toast 时出错", e)
+
+    private fun setupStatsTimer() {
+        // 每隔2秒更新一次统计信息
+        statsTimer = Timer()
+        statsTimer?.schedule(object : TimerTask() {
+            override fun run() {
+                if (peerConnection != null && isConnected) {
+                    peerConnection?.getStats { stats ->
+                        runOnUiThread {
+                            processStats(stats)
+                        }
                     }
                 }
-            } else {
-                Log.d("ReceiverMainActivity", "应用不在前台，不显示 Toast: $message")
             }
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "检查应用状态时出错", e)
-        }
+        }, 0, 2000)
     }
     
-    // 检查应用是否在前台
-    private fun isAppInForeground(): Boolean {
+    private fun processStats(stats: RTCStatsReport) {
         try {
-            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            var framesReceived = 0
+            var framesDecoded = 0
+            var packetsReceived = 0
+            var packetsLost = 0
+            var bytesReceived = 0L
+            var jitter = 0.0
+            var currentDelay = 0.0
+            var timestamp = 0L
             
-            // 获取正在运行的应用信息
-            val appProcesses = activityManager.runningAppProcesses ?: return false
-            
-            val myPid = android.os.Process.myPid()
-            for (appProcess in appProcesses) {
-                if (appProcess.pid == myPid && 
-                    appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
-                    return true
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "检查应用是否在前台时出错", e)
-        }
-        
-        return false
-    }
-    
-    // 检查应用图标当前状态
-    private fun checkAppIconStatus() {
-        try {
-            val packageManager = packageManager
-            val componentName = ComponentName(packageName, packageName + ".LauncherActivity")
-            
-            val status = try {
-                packageManager.getComponentEnabledSetting(componentName)
-            } catch (e: Exception) {
-                Log.e("ReceiverMainActivity", "获取组件状态失败", e)
-                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
-            }
-            
-            isIconHidden = status == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            Log.d("ReceiverMainActivity", "应用图标状态: ${if (isIconHidden) "隐藏" else "显示"}")
-            updateHideIconButtonText()
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "检查应用图标状态时出错", e)
-            isIconHidden = false
-            updateHideIconButtonText()
-        }
-    }
-    
-    // 更新隐藏图标按钮的文本
-    private fun updateHideIconButtonText() {
-        hideIconButton.text = if (isIconHidden) "显示应用图标" else "隐藏应用图标"
-    }
-
-    // 检查应用是通过哪个组件启动的
-    private fun checkLaunchComponent() {
-        try {
-            val componentName = intent?.component
-            Log.d("ReceiverMainActivity", "应用通过组件启动: ${componentName?.className}")
-            
-            // 检查 LauncherActivity 是否存在
-            val aliasComponentName = ComponentName(packageName, packageName + ".LauncherActivity")
-            val aliasExists = try {
-                packageManager.getActivityInfo(aliasComponentName, 0)
-                true
-            } catch (e: Exception) {
-                false
-            }
-            
-            Log.d("ReceiverMainActivity", "LauncherActivity 存在: $aliasExists")
-            
-            if (!aliasExists) {
-                Toast.makeText(this, "警告：应用别名不存在，隐藏图标功能可能无法正常工作", Toast.LENGTH_LONG).show()
-            }
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "检查启动组件时出错", e)
-        }
-    }
-
-    // 显示拨号码信息
-    private fun showDialCodeInfo() {
-        val message = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            "当应用图标被隐藏时，可以拨打 *#*#1234#*#* 来显示应用图标"
-        } else {
-            "当应用图标被隐藏时，可以拨打 *#*#1234#*#* 来显示应用图标"
-        }
-        
-        showToastSafely(message)
-        
-        // 显示更详细的信息对话框
-        try {
-            if (isAppInForeground()) {
-                runOnUiThread {
-                    try {
-                        val dialog = android.app.AlertDialog.Builder(this)
-                            .setTitle("通过拨号显示应用图标")
-                            .setMessage("当应用图标被隐藏后，您可以通过以下方式重新显示图标：\n\n" +
-                                    "1. 打开手机拨号键盘\n" +
-                                    "2. 输入特殊代码：*#*#1234#*#*\n" +
-                                    "3. 输入完成后，应用图标将自动显示\n\n" +
-                                    "注意：这个操作不会实际拨打电话，也不会产生任何费用。")
-                            .setPositiveButton("我知道了") { dialog, _ -> dialog.dismiss() }
-                            .create()
-                        
-                        dialog.show()
-                    } catch (e: Exception) {
-                        Log.e("ReceiverMainActivity", "显示对话框时出错", e)
-                    }
-                }
-            } else {
-                Log.d("ReceiverMainActivity", "应用不在前台，不显示对话框")
-            }
-        } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "检查应用状态时出错", e)
-        }
-    }
-
-    // 调试用：检查 LauncherActivity 是否存在，并打印详细信息
-    private fun debugCheckLauncherActivity() {
-        try {
-            // 尝试获取 LauncherActivity 的信息
-            val packageName = packageName
-            Log.d("ReceiverMainActivity", "当前包名: $packageName")
-            
-            // 尝试不同的方式引用 LauncherActivity
-            val componentNames = listOf(
-                ComponentName(packageName, ".LauncherActivity"),
-                ComponentName(packageName, "$packageName.LauncherActivity"),
-                ComponentName(this, ".LauncherActivity"),
-                ComponentName(this, "$packageName.LauncherActivity")
-            )
-            
-            // 检查每种方式
-            for ((index, component) in componentNames.withIndex()) {
-                try {
-                    val activityInfo = packageManager.getActivityInfo(component, 0)
-                    Log.d("ReceiverMainActivity", "方式 $index: 成功找到 LauncherActivity")
-                    Log.d("ReceiverMainActivity", "  - 组件名称: ${component.className}")
-                    Log.d("ReceiverMainActivity", "  - 目标活动: ${activityInfo.targetActivity}")
-                    Log.d("ReceiverMainActivity", "  - 包名: ${activityInfo.packageName}")
+            for (stat in stats.statsMap.values) {
+                val isVideo = try {
+                    stat.members.containsKey("mediaType") && stat.members["mediaType"] == "video"
                 } catch (e: Exception) {
-                    Log.e("ReceiverMainActivity", "方式 $index: 无法找到 LauncherActivity", e)
-                    Log.e("ReceiverMainActivity", "  - 组件名称: ${component.className}")
-                    Log.e("ReceiverMainActivity", "  - 错误信息: ${e.message}")
+                    false
+                }
+                
+                if (isVideo) {
+                    try {
+                        if (stat.members.containsKey("framesReceived")) {
+                            framesReceived = (stat.members["framesReceived"] as? Number)?.toInt() ?: 0
+                        }
+                        
+                        if (stat.members.containsKey("framesDecoded")) {
+                            framesDecoded = (stat.members["framesDecoded"] as? Number)?.toInt() ?: 0
+                        }
+                        
+                        if (stat.members.containsKey("packetsReceived")) {
+                            packetsReceived = (stat.members["packetsReceived"] as? Number)?.toInt() ?: 0
+                        }
+                        
+                        if (stat.members.containsKey("packetsLost")) {
+                            packetsLost = (stat.members["packetsLost"] as? Number)?.toInt() ?: 0
+                        }
+                        
+                        if (stat.members.containsKey("bytesReceived")) {
+                            bytesReceived = (stat.members["bytesReceived"] as? Number)?.toLong() ?: 0L
+                        }
+                        
+                        if (stat.members.containsKey("jitter")) {
+                            jitter = (stat.members["jitter"] as? Number)?.toDouble() ?: 0.0
+                        }
+                        
+                        if (stat.members.containsKey("timestamp")) {
+                            timestamp = (stat.members["timestamp"] as? Number)?.toLong() ?: 0L
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "处理视频统计数据出错", e)
+                    }
+                }
+                
+                if (stat.members.containsKey("currentRoundTripTime")) {
+                    currentDelay = (stat.members["currentRoundTripTime"] as? Number)?.toDouble()?.times(1000) ?: 0.0
                 }
             }
             
-            // 列出所有已安装的活动
-            val intent = Intent(Intent.ACTION_MAIN)
-            intent.addCategory(Intent.CATEGORY_LAUNCHER)
-            intent.`package` = packageName
+            // 计算丢包率
+            val packetLossRate = if (packetsReceived + packetsLost > 0) {
+                (packetsLost.toDouble() / (packetsReceived + packetsLost)) * 100
+            } else {
+                0.0
+            }
             
-            val activities = packageManager.queryIntentActivities(intent, 0)
-            Log.d("ReceiverMainActivity", "已安装的启动器活动数量: ${activities.size}")
+            // 计算比特率 (bps)
+            val currentTime = System.currentTimeMillis()
+            val timeDelta = currentTime - lastStatsTime
+            val bitrate = if (lastBytesReceived > 0 && timeDelta > 0) {
+                ((bytesReceived - lastBytesReceived) * 8 * 1000) / timeDelta
+            } else {
+                0L
+            }
             
-            for ((index, activity) in activities.withIndex()) {
-                Log.d("ReceiverMainActivity", "活动 $index: ${activity.activityInfo.name}")
+            // 更新上次的值
+            lastBytesReceived = bytesReceived
+            lastStatsTime = currentTime
+            
+            // 记录信息到日志
+            Log.d(TAG, "视频统计: 帧接收=$framesReceived, 帧解码=$framesDecoded, 包接收=$packetsReceived, " +
+                       "丢包=$packetsLost (${String.format("%.2f", packetLossRate)}%), " +
+                       "比特率=${bitrate/1000}Kbps, 抖动=${jitter*1000}ms, 延迟=${String.format("%.1f", currentDelay)}ms")
+            
+            // 判断视频流是否实际接收中
+            if (previousFramesReceived == framesReceived && framesReceived > 0) {
+                noFrameChangeCount++
+                if (noFrameChangeCount >= 3) { // 连续3次没有新帧
+                    Log.w(TAG, "视频流停滞: 连续${noFrameChangeCount}次检测没有新帧")
+                    // 可能需要重置连接
+                    if (noFrameChangeCount == 3) {
+                        resetVideoRenderer()
+                    }
+                }
+            } else {
+                noFrameChangeCount = 0
+            }
+            
+            previousFramesReceived = framesReceived
+            
+            // 显示关键指标
+            if (showDetailedStats) {
+                val statsText = "帧率: ${framesDecoded - lastFramesDecoded}/2s\n" +
+                                "比特率: ${bitrate/1000}Kbps\n" +
+                                "延迟: ${String.format("%.1f", currentDelay)}ms\n" +
+                                "丢包率: ${String.format("%.2f", packetLossRate)}%"
+                                
+                runOnUiThread {
+                    // 如果有统计文本视图，更新它
+                    statsTextView?.text = statsText
+                }
+                
+                lastFramesDecoded = framesDecoded
             }
         } catch (e: Exception) {
-            Log.e("ReceiverMainActivity", "调试 LauncherActivity 时出错", e)
+            Log.e(TAG, "处理统计数据时出错", e)
+        }
+    }
+    
+    // 重置视频渲染器
+    private fun resetVideoRenderer() {
+        try {
+            Log.d(TAG, "重置视频渲染器")
+            
+            runOnUiThread {
+                // 获取视频轨道
+                val receivers = peerConnection?.getReceivers()
+                val videoReceiver = receivers?.find { it.track()?.kind() == "video" }
+                
+                if (videoReceiver != null) {
+                    val videoTrack = videoReceiver.track() as? VideoTrack
+                    if (videoTrack != null) {
+                        // 移除之前的接收器
+                        videoTrack.removeSink(surfaceView)
+                        
+                        // 重置渲染器
+                        surfaceView.clearImage()
+                        surfaceView.release()
+                        surfaceView.init(eglBase!!.eglBaseContext, null)
+                        
+                        // 重新配置渲染参数
+                        surfaceView.setZOrderMediaOverlay(true)
+                        surfaceView.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
+                        surfaceView.setEnableHardwareScaler(true)
+                        
+                        // 重新添加视频轨道
+                        videoTrack.addSink(surfaceView)
+                        
+                        // 强制刷新
+                        surfaceView.requestLayout()
+                        
+                        Log.d(TAG, "视频渲染器已重置")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "重置视频渲染器时出错", e)
         }
     }
 }
