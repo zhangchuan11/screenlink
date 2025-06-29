@@ -33,6 +33,8 @@ class WebRTCManager(private val context: Context) {
         fun onIceCandidateReceived(candidate: String, sdpMLineIndex: Int, sdpMid: String)
         fun onRequestOffer()
         fun onClientListReceived(clients: List<ClientInfo>)
+        fun onConnectRequestReceived(sourceClientId: Int)
+        fun onError(error: String)
     }
     
     private var listener: WebRTCListener? = null
@@ -45,9 +47,11 @@ class WebRTCManager(private val context: Context) {
         val available: Boolean
     )
     
-    var myClientId: Int? = null
+    private var selectedTargetClientId: Int? = null
+    private var myClientId: Int? = null
+    private var mySenderId: Int? = null  // 添加senderId字段
+    private var clientToSenderMap: MutableMap<Int, Int> = mutableMapOf()  // 添加映射表
     var myClientName: String = android.os.Build.MODEL
-    var selectedTargetClientId: Int? = null
     
     private var peerConnectionManager: PeerConnectionManager? = null
     
@@ -59,6 +63,9 @@ class WebRTCManager(private val context: Context) {
     }
     
     private var connectionListener: ConnectionListener? = null
+    
+    // 心跳定时器
+    private var heartbeatTimer: java.util.Timer? = null
     
     companion object {
         private const val TAG = "WebRTCManager"
@@ -127,8 +134,8 @@ class WebRTCManager(private val context: Context) {
                     // 连接成功后立即请求发送端列表
                     requestSenderList()
                     
-                    // 连接成功后自动注册为在线客户端
-                    registerAsClient("Android设备")
+                    // 启动心跳机制
+                    startHeartbeat()
                 }
 
                 override fun onMessage(message: String?) {
@@ -140,6 +147,9 @@ class WebRTCManager(private val context: Context) {
                     Log.d(TAG, "WebSocket连接已关闭: $code, $reason")
                     isConnected = false
                     listener?.onConnectionStateChanged(false)
+                    
+                    // 停止心跳机制
+                    stopHeartbeat()
                 }
 
                 override fun onError(ex: Exception?) {
@@ -177,25 +187,68 @@ class WebRTCManager(private val context: Context) {
         if (message == null) return
         
         try {
+            Log.d(TAG, "开始处理信令消息: $message")
             val json = JSONObject(message)
             val type = json.getString("type")
+            Log.d(TAG, "消息类型: $type")
             
             when (type) {
                 "sender_list" -> {
                     handleSenderList(json)
                 }
+                "sender_list_update" -> {
+                    handleSenderList(json)
+                }
+                "sender_registered" -> {
+                    // 处理发送端注册确认消息
+                    if (json.has("senderId")) {
+                        mySenderId = json.getInt("senderId")
+                        val name = json.getString("name")
+                        Log.d(TAG, "发送端注册成功，senderId: $mySenderId, 名称: $name")
+                        // 注册成功后自动创建offer
+                        if (peerConnectionManager != null) {
+                            peerConnectionManager?.createOffer(object : PeerConnectionManager.PeerConnectionListener {
+                                override fun onOfferCreated(sdp: SessionDescription) {
+                                    sendOffer(sdp.description)
+                                }
+                                override fun onIceCandidate(candidate: IceCandidate) {}
+                                override fun onAnswerCreated(sdp: SessionDescription) {}
+                                override fun onConnectionStateChanged(state: PeerConnection.IceConnectionState) {}
+                            })
+                        } else {
+                            // 如果peerConnectionManager为null，通过listener通知自动生成offer
+                            Log.d(TAG, "peerConnectionManager为null，通过listener通知自动生成offer")
+                            listener?.onRequestOffer()
+                        }
+                    }
+                }
                 "client_list" -> {
                     val clientsArray = json.getJSONArray("clients")
                     val clients = mutableListOf<ClientInfo>()
+                    Log.d(TAG, "处理客户端列表，我的客户端名称: $myClientName")
+                    
                     for (i in 0 until clientsArray.length()) {
                         val c = clientsArray.getJSONObject(i)
                         val id = c.getInt("id")
                         val name = c.getString("name")
                         clients.add(ClientInfo(id, name))
+                        Log.d(TAG, "客户端: ID=$id, 名称=$name")
+                        
                         if (name == myClientName) {
                             myClientId = id
+                            Log.d(TAG, "找到匹配的客户端，设置myClientId为: $id")
                         }
                     }
+                    
+                    if (myClientId == null) {
+                        Log.w(TAG, "未找到匹配的客户端名称: $myClientName")
+                        // 如果没有找到匹配的客户端，可以选择第一个客户端作为默认值
+                        if (clients.isNotEmpty()) {
+                            myClientId = clients.first().id
+                            Log.d(TAG, "使用第一个客户端作为默认值，myClientId设置为: ${myClientId}")
+                        }
+                    }
+                    
                     // 过滤掉自己
                     val filtered = myClientId?.let { id -> clients.filter { it.id != id } } ?: clients
                     listener?.onClientListReceived(filtered)
@@ -204,16 +257,32 @@ class WebRTCManager(private val context: Context) {
                     handleConnectRequest(json)
                 }
                 "offer" -> {
+                    Log.d(TAG, "收到Offer消息: ${json.toString()}")
                     handleOffer(json)
                 }
                 "answer" -> {
+                    Log.d(TAG, "收到Answer消息: ${json.toString()}")
                     handleAnswer(json)
                 }
                 "ice_candidate" -> {
                     handleIceCandidate(json)
                 }
                 "request_offer" -> {
+                    Log.d(TAG, "收到请求Offer消息")
                     listener?.onRequestOffer()
+                }
+                "heartbeat_ack" -> {
+                    Log.d(TAG, "收到心跳确认消息")
+                    // 心跳确认，无需特殊处理
+                }
+                "error" -> {
+                    val errorMessage = json.getString("message")
+                    Log.e(TAG, "收到错误消息: $errorMessage")
+                    // 通知UI显示错误信息
+                    listener?.onError(errorMessage)
+                }
+                else -> {
+                    Log.w(TAG, "未知消息类型: $type")
                 }
             }
             
@@ -260,6 +329,15 @@ class WebRTCManager(private val context: Context) {
     private fun handleOffer(json: JSONObject) {
         try {
             val sdp = json.getString("sdp")
+            
+            // 如果offer消息包含senderId，保存到映射表中
+            if (json.has("senderId")) {
+                val senderId = json.getInt("senderId")
+                // 保存当前选择的发送端ID
+                selectedTargetClientId = senderId
+                Log.d(TAG, "收到offer，设置selectedTargetClientId为senderId: $senderId")
+            }
+            
             listener?.onOfferReceived(sdp)
         } catch (e: Exception) {
             Log.e(TAG, "处理Offer失败", e)
@@ -287,6 +365,7 @@ class WebRTCManager(private val context: Context) {
             val sdpMLineIndex = json.getInt("sdpMLineIndex")
             val sdpMid = json.getString("sdpMid")
             
+            Log.d(TAG, "收到ICE候选: $candidate")
             listener?.onIceCandidateReceived(candidate, sdpMLineIndex, sdpMid)
             
         } catch (e: Exception) {
@@ -331,8 +410,16 @@ class WebRTCManager(private val context: Context) {
             val json = JSONObject()
             json.put("type", "offer")
             json.put("sdp", sdp)
+            // 只有当selectedTargetClientId不为null时才添加targetClientId字段
+            if (selectedTargetClientId != null) {
+                json.put("targetClientId", selectedTargetClientId)
+            }
             ws?.send(json.toString())
-            Log.d(TAG, "Offer已发送")
+            if (selectedTargetClientId != null) {
+                Log.d(TAG, "Offer已发送给目标客户端: $selectedTargetClientId")
+            } else {
+                Log.d(TAG, "发送端Offer已发送到服务器")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "发送Offer失败", e)
         }
@@ -346,11 +433,33 @@ class WebRTCManager(private val context: Context) {
             val json = JSONObject()
             json.put("type", "answer")
             json.put("sdp", sdp)
+            // 直接使用selectedTargetClientId作为selectedSenderId
+            val senderId = selectedTargetClientId ?: 0
+            json.put("selectedSenderId", senderId)
             ws?.send(json.toString())
-            Log.d(TAG, "Answer已发送")
+            Log.d(TAG, "Answer已发送给发送端: senderId=$senderId")
         } catch (e: Exception) {
             Log.e(TAG, "发送Answer失败", e)
         }
+    }
+    
+    /**
+     * 根据clientId获取对应的senderId
+     * 这里需要维护一个clientId到senderId的映射
+     */
+    private fun getSenderIdForClient(clientId: Int?): Int {
+        if (clientId == null) return 0
+        
+        // 从映射表中查找senderId
+        val senderId = clientToSenderMap[clientId]
+        if (senderId != null) {
+            Log.d(TAG, "找到clientId $clientId 对应的senderId: $senderId")
+            return senderId
+        }
+        
+        // 如果没找到，使用clientId作为senderId（临时方案）
+        Log.w(TAG, "未找到clientId $clientId 对应的senderId，使用clientId作为senderId")
+        return clientId
     }
     
     /**
@@ -363,8 +472,9 @@ class WebRTCManager(private val context: Context) {
             json.put("candidate", candidate.sdp)
             json.put("sdpMLineIndex", candidate.sdpMLineIndex)
             json.put("sdpMid", candidate.sdpMid)
+            json.put("targetClientId", selectedTargetClientId)
             ws?.send(json.toString())
-            Log.d(TAG, "ICE候选已发送")
+            Log.d(TAG, "ICE候选已发送给目标客户端: $selectedTargetClientId")
         } catch (e: Exception) {
             Log.e(TAG, "发送ICE候选失败", e)
         }
@@ -486,6 +596,11 @@ class WebRTCManager(private val context: Context) {
      */
     fun sendConnectRequest(targetClientId: Int) {
         try {
+            if (myClientId == null) {
+                Log.e(TAG, "发送连接请求失败：myClientId为null，请先注册客户端")
+                return
+            }
+            
             val json = JSONObject()
             json.put("type", "connect_request")
             json.put("targetClientId", targetClientId)
@@ -502,18 +617,21 @@ class WebRTCManager(private val context: Context) {
      */
     private fun handleConnectRequest(json: JSONObject) {
         try {
+            if (!json.has("sourceClientId")) {
+                Log.e(TAG, "处理连接请求失败：缺少sourceClientId字段")
+                return
+            }
+            
             val sourceClientId = json.getInt("sourceClientId")
             Log.d(TAG, "收到来自客户端 $sourceClientId 的连接请求")
             
-            // 创建PeerConnection
-            val peerConnection = peerConnectionManager?.createPeerConnection()
-            if (peerConnection != null) {
-                // 创建Offer
-                peerConnectionManager?.createOffer()
-                Log.d(TAG, "已创建Offer响应连接请求")
-            } else {
-                Log.e(TAG, "创建PeerConnection失败")
-            }
+            // 设置目标客户端为发送连接请求的客户端
+            selectedTargetClientId = sourceClientId
+            Log.d(TAG, "设置目标客户端为: $sourceClientId")
+            
+            // 调用回调，让ScreenCaptureService处理连接请求
+            listener?.onConnectRequestReceived(sourceClientId)
+            
         } catch (e: Exception) {
             Log.e(TAG, "处理连接请求失败", e)
         }
@@ -524,12 +642,17 @@ class WebRTCManager(private val context: Context) {
      */
     fun sendOfferToTarget(sdp: String) {
         try {
+            if (selectedTargetClientId == null) {
+                Log.e(TAG, "发送Offer失败：selectedTargetClientId为null")
+                return
+            }
+            
             val json = JSONObject()
             json.put("type", "offer")
             json.put("sdp", sdp)
             json.put("targetClientId", selectedTargetClientId)
             ws?.send(json.toString())
-            Log.d(TAG, "Offer已发送给目标客户端")
+            Log.d(TAG, "Offer已发送给目标客户端: $selectedTargetClientId")
         } catch (e: Exception) {
             Log.e(TAG, "发送Offer失败", e)
         }
@@ -557,5 +680,78 @@ class WebRTCManager(private val context: Context) {
         connectionListener?.onDisconnected()
         peerConnectionManager?.close()
         selectedTargetClientId = null
+    }
+    
+    /**
+     * 设置客户端名称
+     */
+    fun setClientName(name: String) {
+        this.myClientName = name
+        Log.d(TAG, "客户端名称已设置为: $name")
+    }
+    
+    /**
+     * 启动心跳机制
+     */
+    private fun startHeartbeat() {
+        try {
+            heartbeatTimer?.cancel()
+            heartbeatTimer = java.util.Timer()
+            heartbeatTimer?.scheduleAtFixedRate(object : java.util.TimerTask() {
+                override fun run() {
+                    sendHeartbeat()
+                }
+            }, 30000, 30000) // 30秒发送一次心跳
+            Log.d(TAG, "心跳机制已启动")
+        } catch (e: Exception) {
+            Log.e(TAG, "启动心跳机制失败", e)
+        }
+    }
+    
+    /**
+     * 发送心跳
+     */
+    private fun sendHeartbeat() {
+        try {
+            if (isConnected && ws?.isOpen == true) {
+                val json = JSONObject()
+                json.put("type", "heartbeat")
+                // 发送端使用senderId，客户端使用clientId
+                if (myClientId != null) {
+                    json.put("clientId", myClientId)
+                } else if (mySenderId != null) {
+                    json.put("senderId", mySenderId)
+                }
+                ws?.send(json.toString())
+                Log.d(TAG, "心跳已发送")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "发送心跳失败", e)
+        }
+    }
+    
+    /**
+     * 停止心跳机制
+     */
+    private fun stopHeartbeat() {
+        try {
+            heartbeatTimer?.cancel()
+            heartbeatTimer = null
+            Log.d(TAG, "心跳机制已停止")
+        } catch (e: Exception) {
+            Log.e(TAG, "停止心跳机制失败", e)
+        }
+    }
+    
+    /**
+     * 选择发送端
+     */
+    fun selectSender(senderId: Int) {
+        try {
+            Log.d(TAG, "选择发送端: $senderId")
+            sendSelectSender(senderId)
+        } catch (e: Exception) {
+            Log.e(TAG, "选择发送端失败", e)
+        }
     }
 } 

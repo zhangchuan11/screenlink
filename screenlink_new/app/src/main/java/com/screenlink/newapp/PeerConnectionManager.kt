@@ -48,35 +48,97 @@ class PeerConnectionManager {
             // 清理旧的连接
             close()
             
-            val rtcConfig = PeerConnection.RTCConfiguration(listOf())
+            // 配置STUN服务器 - 简化配置
+            val iceServers = listOf(
+                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
+            )
+            
+            val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
+                // 设置ICE传输策略 - 优先本地网络
+                iceTransportsType = PeerConnection.IceTransportsType.ALL
+                // 设置RTCP复用策略
+                rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
+                // 设置SDP语义
+                sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
+            }
+            
             peerConnection = factory?.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
                 override fun onIceCandidate(candidate: IceCandidate?) {
-                    candidate?.let { listener?.onIceCandidate(it) }
+                    candidate?.let { 
+                        Log.d(TAG, "生成ICE候选: ${candidate.sdp}")
+                        listener?.onIceCandidate(it) 
+                    }
                 }
                 
-                override fun onSignalingChange(state: PeerConnection.SignalingState?) {}
+                override fun onSignalingChange(state: PeerConnection.SignalingState?) {
+                    Log.d(TAG, "信令状态变化: $state")
+                }
                 override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
+                    Log.d(TAG, "ICE连接状态变化: $state")
+                    when (state) {
+                        PeerConnection.IceConnectionState.NEW -> Log.d(TAG, "ICE连接: 新建状态")
+                        PeerConnection.IceConnectionState.CHECKING -> {
+                            Log.d(TAG, "ICE连接: 检查中...")
+                            // 设置超时检查
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                if (peerConnection?.iceConnectionState() == PeerConnection.IceConnectionState.CHECKING) {
+                                    Log.w(TAG, "ICE连接检查超时，尝试重启连接")
+                                    // 可以在这里添加重连逻辑
+                                }
+                            }, 10000) // 10秒超时
+                        }
+                        PeerConnection.IceConnectionState.CONNECTED -> Log.d(TAG, "ICE连接: 已连接 ✅")
+                        PeerConnection.IceConnectionState.COMPLETED -> Log.d(TAG, "ICE连接: 已完成 ✅")
+                        PeerConnection.IceConnectionState.FAILED -> {
+                            Log.e(TAG, "ICE连接: 失败 ❌")
+                            // 连接失败时尝试重启
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                Log.d(TAG, "尝试重启ICE连接")
+                                peerConnection?.restartIce()
+                            }, 2000)
+                        }
+                        PeerConnection.IceConnectionState.DISCONNECTED -> Log.w(TAG, "ICE连接: 断开连接")
+                        PeerConnection.IceConnectionState.CLOSED -> Log.d(TAG, "ICE连接: 已关闭")
+                        else -> Log.d(TAG, "ICE连接: 未知状态 $state")
+                    }
                     state?.let { listener?.onConnectionStateChanged(it) }
                 }
-                override fun onIceConnectionReceivingChange(receiving: Boolean) {}
-                override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {}
-                override fun onAddStream(stream: MediaStream?) {}
-                override fun onRemoveStream(stream: MediaStream?) {}
-                override fun onDataChannel(channel: DataChannel?) {}
-                override fun onRenegotiationNeeded() {}
+                override fun onIceConnectionReceivingChange(receiving: Boolean) {
+                    Log.d(TAG, "ICE连接接收状态变化: $receiving")
+                }
+                override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
+                    Log.d(TAG, "ICE收集状态变化: $state")
+                }
+                override fun onAddStream(stream: MediaStream?) {
+                    Log.d(TAG, "添加媒体流: ${stream?.id}")
+                }
+                override fun onRemoveStream(stream: MediaStream?) {
+                    Log.d(TAG, "移除媒体流: ${stream?.id}")
+                }
+                override fun onDataChannel(channel: DataChannel?) {
+                    Log.d(TAG, "数据通道: ${channel?.label()}")
+                }
+                override fun onRenegotiationNeeded() {
+                    Log.d(TAG, "需要重新协商")
+                }
                 override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {
                     val track = receiver?.track()
+                    Log.d(TAG, "onAddTrack被调用，轨道类型: ${track?.kind()}, 轨道ID: ${track?.id()}")
                     if (track is VideoTrack) {
                         remoteVideoTrack = track
                         Log.d(TAG, "远端视频轨道已添加: ${track.id()}")
+                        Log.d(TAG, "远端视频轨道状态: enabled=${track.enabled()}")
                     } else {
                         Log.d(TAG, "收到非视频轨道: ${track?.kind()}")
                     }
                 }
-                override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {}
+                override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {
+                    Log.d(TAG, "ICE候选已移除: ${candidates?.size} 个")
+                }
             })
             
-            Log.d(TAG, "PeerConnection创建成功")
+            Log.d(TAG, "PeerConnection创建成功，配置了 ${iceServers.size} 个ICE服务器")
             return peerConnection
             
         } catch (e: Exception) {
@@ -100,6 +162,14 @@ class PeerConnectionManager {
             Log.e(TAG, "添加视频轨道失败", e)
             return false
         }
+    }
+    
+    /**
+     * 创建Offer，支持回调
+     */
+    fun createOffer(listener: PeerConnectionListener) {
+        this.listener = listener
+        createOffer()
     }
     
     /**
@@ -183,6 +253,12 @@ class PeerConnectionManager {
      */
     fun setRemoteDescription(sdp: String, type: SessionDescription.Type) {
         try {
+            // 如果PeerConnection不存在，先创建它
+            if (peerConnection == null) {
+                Log.d(TAG, "PeerConnection不存在，先创建PeerConnection")
+                createPeerConnection()
+            }
+            
             val sessionDescription = SessionDescription(type, sdp)
             peerConnection?.setRemoteDescription(object : SdpObserver {
                 override fun onCreateSuccess(p0: SessionDescription?) {}

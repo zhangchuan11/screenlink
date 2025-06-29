@@ -3105,7 +3105,7 @@ id bounceBoth
 id bounceEnd
 id bounceStart
 id btnConnect
-id btnModeToggle
+id btnStartSender
 id buttonPanel
 id cache_measures
 id callMeasure

@@ -62,6 +62,9 @@ class ScreenCaptureService : Service() {
     // 添加连接状态标志
     private var isConnecting = false
     
+    // 添加WebRTC管理器
+    private var webRTCManager: WebRTCManager? = null
+    
     companion object {
         private const val TAG = "ScreenCaptureService"
         private const val NOTIFICATION_ID = 1001
@@ -242,6 +245,10 @@ class ScreenCaptureService : Service() {
             // 停止心跳
             stopHeartbeat()
             
+            // 清理WebRTCManager
+            webRTCManager?.cleanup()
+            webRTCManager = null
+            
             Log.d(TAG, "所有资源清理完成")
             
         } catch (e: Exception) {
@@ -384,43 +391,14 @@ class ScreenCaptureService : Service() {
      * 启动心跳
      */
     private fun startHeartbeat() {
-        heartbeatHandler = Handler(Looper.getMainLooper())
-        heartbeatRunnable = object : Runnable {
-            override fun run() {
-                try {
-                    sendHeartbeat()
-                    heartbeatHandler?.postDelayed(this, 30000) // 30秒心跳
-                } catch (e: Exception) {
-                    Log.e(TAG, "心跳发送失败", e)
-                }
-            }
-        }
-        heartbeatHandler?.postDelayed(heartbeatRunnable!!, 30000)
-        Log.d(TAG, "心跳已启动")
+        Log.d(TAG, "startHeartbeat: 已弃用，心跳由WebRTCManager处理")
     }
     
     /**
      * 停止心跳
      */
     private fun stopHeartbeat() {
-        heartbeatRunnable?.let { heartbeatHandler?.removeCallbacks(it) }
-        heartbeatRunnable = null
-        Log.d(TAG, "心跳已停止")
-    }
-    
-    /**
-     * 发送心跳
-     */
-    private fun sendHeartbeat() {
-        try {
-            val json = JSONObject()
-            json.put("type", "heartbeat")
-            json.put("senderId", senderName)
-            ws?.send(json.toString())
-            Log.d(TAG, "心跳已发送")
-        } catch (e: Exception) {
-            Log.e(TAG, "发送心跳失败", e)
-        }
+        Log.d(TAG, "stopHeartbeat: 已弃用，心跳由WebRTCManager处理")
     }
     
     /**
@@ -435,42 +413,64 @@ class ScreenCaptureService : Service() {
             
             Log.d(TAG, "开始连接到信令服务器: $address")
             
-            val uri = URI("ws://$address")
-            ws = object : WebSocketClient(uri) {
-                override fun onOpen(handshakedata: ServerHandshake?) {
-                    Log.d(TAG, "WebSocket连接已建立")
-                    isConnected = true
-                    isConnecting = false
-                    
-                    // 发送注册消息
-                    sendRegistrationMessage()
-                    
-                    // 启动心跳
-                    startHeartbeat()
+            // 创建WebRTCManager并设置监听器
+            webRTCManager = WebRTCManager(this)
+            webRTCManager?.initialize()
+            webRTCManager?.setListener(object : WebRTCManager.WebRTCListener {
+                override fun onConnectionStateChanged(connected: Boolean) {
+                    Log.d(TAG, "WebRTC连接状态变化: $connected")
+                    if (connected) {
+                        // 连接成功后发送发送端注册消息
+                        sendRegistrationMessage()
+                    }
                 }
                 
-                override fun onMessage(message: String?) {
-                    Log.d(TAG, "收到消息: $message")
-                    handleSignalingMessage(message)
+                override fun onSenderListReceived(senders: List<WebRTCManager.SenderInfo>) {
+                    // 发送端不需要处理发送端列表
                 }
                 
-                override fun onClose(code: Int, reason: String?, remote: Boolean) {
-                    Log.d(TAG, "WebSocket连接已关闭: $code, $reason")
-                    isConnected = false
-                    isConnecting = false
-                    stopHeartbeat()
+                override fun onOfferReceived(sdp: String) {
+                    // 发送端不需要处理Offer
                 }
                 
-                override fun onError(ex: Exception?) {
-                    Log.e(TAG, "WebSocket错误", ex)
-                    isConnected = false
-                    isConnecting = false
-                    stopHeartbeat()
+                override fun onAnswerReceived(sdp: String) {
+                    // 处理Answer
+                    handleAnswer(JSONObject().apply {
+                        put("sdp", sdp)
+                    })
                 }
-            }
+                
+                override fun onIceCandidateReceived(candidate: String, sdpMLineIndex: Int, sdpMid: String) {
+                    // 处理ICE候选
+                    handleIceCandidate(JSONObject().apply {
+                        put("candidate", candidate)
+                        put("sdpMLineIndex", sdpMLineIndex)
+                        put("sdpMid", sdpMid)
+                    })
+                }
+                
+                override fun onRequestOffer() {
+                    // 处理请求Offer
+                    handleRequestOffer(JSONObject())
+                }
+                
+                override fun onConnectRequestReceived(sourceClientId: Int) {
+                    // 处理连接请求
+                    handleConnectRequestFromManager(sourceClientId)
+                }
+                
+                override fun onClientListReceived(clients: List<WebRTCManager.ClientInfo>) {
+                    // 发送端不需要处理客户端列表
+                }
+                
+                override fun onError(error: String) {
+                    Log.e(TAG, "WebRTC错误: $error")
+                    // 发送端可以忽略错误，继续运行
+                }
+            })
             
-            isConnecting = true
-            ws?.connect()
+            // 连接到信令服务器
+            webRTCManager?.connectToSignalingServer(address)
             
         } catch (e: Exception) {
             Log.e(TAG, "连接信令服务器失败", e)
@@ -483,9 +483,8 @@ class ScreenCaptureService : Service() {
      */
     private fun disconnectFromSignalingServer() {
         try {
-            stopHeartbeat()
-            ws?.close()
-            ws = null
+            webRTCManager?.disconnectFromSignalingServer()
+            webRTCManager = null
             isConnected = false
             isConnecting = false
             Log.d(TAG, "已断开信令服务器连接")
@@ -499,11 +498,7 @@ class ScreenCaptureService : Service() {
      */
     private fun sendRegistrationMessage() {
         try {
-            val json = JSONObject()
-            json.put("type", "register_sender")
-            json.put("name", senderName)
-            ws?.send(json.toString())
-            Log.d(TAG, "注册消息已发送")
+            webRTCManager?.sendRegistrationMessage(senderName)
         } catch (e: Exception) {
             Log.e(TAG, "发送注册消息失败", e)
         }
@@ -513,45 +508,8 @@ class ScreenCaptureService : Service() {
      * 处理信令消息
      */
     private fun handleSignalingMessage(message: String?) {
-        if (message == null) return
-        
-        try {
-            val json = JSONObject(message)
-            val type = json.getString("type")
-            
-            when (type) {
-                "request_offer" -> {
-                    handleRequestOffer(json)
-                }
-                "answer" -> {
-                    handleAnswer(json)
-                }
-                "ice_candidate" -> {
-                    handleIceCandidate(json)
-                }
-            }
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "处理信令消息失败", e)
-        }
-    }
-    
-    /**
-     * 处理请求Offer
-     */
-    private fun handleRequestOffer(json: JSONObject) {
-        try {
-            Log.d(TAG, "收到请求Offer消息")
-            
-            // 开始屏幕捕获
-            startScreenCapture()
-            
-            // 创建Offer
-            createOffer()
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "处理请求Offer失败", e)
-        }
+        // 此方法不再需要，因为现在使用WebRTCManager处理消息
+        Log.d(TAG, "handleSignalingMessage已废弃，使用WebRTCManager处理消息")
     }
     
     /**
@@ -598,6 +556,24 @@ class ScreenCaptureService : Service() {
     }
     
     /**
+     * 处理请求Offer
+     */
+    private fun handleRequestOffer(json: JSONObject) {
+        try {
+            Log.d(TAG, "收到请求Offer消息")
+            
+            // 开始屏幕捕获
+            startScreenCapture()
+            
+            // 创建Offer
+            createOffer()
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "处理请求Offer失败", e)
+        }
+    }
+    
+    /**
      * 开始屏幕捕获
      */
     private fun startScreenCapture() {
@@ -607,7 +583,7 @@ class ScreenCaptureService : Service() {
                 return
             }
             
-            Log.d(TAG, "开始屏幕捕获")
+            Log.d(TAG, "开始屏幕捕获，MediaProjection数据: data=${data != null}, resultCode=$resultCode")
             
             // 创建屏幕捕获器
             videoCapturer = createScreenCapturer()
@@ -617,19 +593,41 @@ class ScreenCaptureService : Service() {
                 return
             }
             
+            Log.d(TAG, "屏幕捕获器创建成功")
+            
             // 创建视频源
             videoSource = factory?.createVideoSource(false)
-            videoCapturer?.initialize(SurfaceTextureHelper.create("ScreenCaptureThread", eglBase!!.eglBaseContext), this, videoSource?.capturerObserver)
+            if (videoSource == null) {
+                Log.e(TAG, "创建视频源失败")
+                return
+            }
+            
+            Log.d(TAG, "视频源创建成功")
+            
+            // 初始化捕获器
+            val surfaceTextureHelper = SurfaceTextureHelper.create("ScreenCaptureThread", eglBase!!.eglBaseContext)
+            videoCapturer?.initialize(surfaceTextureHelper, this, videoSource?.capturerObserver)
+            
+            Log.d(TAG, "捕获器初始化完成")
             
             // 创建视频轨道
             videoTrack = factory?.createVideoTrack("screen_track", videoSource)
+            if (videoTrack == null) {
+                Log.e(TAG, "创建视频轨道失败")
+                return
+            }
             
-            // 开始捕获
-            videoCapturer?.startCapture(1920, 1080, 30)
+            Log.d(TAG, "视频轨道创建成功: ${videoTrack?.id()}")
+            
+            // 设置视频编码参数以提高质量
+            videoSource?.adaptOutputFormat(1440, 2560, 60)
+            
+            // 开始捕获 - 使用更高的分辨率和帧率
+            videoCapturer?.startCapture(1440, 2560, 60)
             isScreenCaptureActive = true
             setScreenSharingActive(true)
             
-            Log.d(TAG, "屏幕捕获已开始")
+            Log.d(TAG, "屏幕捕获已开始，视频轨道ID: ${videoTrack?.id()}")
             
         } catch (e: Exception) {
             Log.e(TAG, "开始屏幕捕获失败", e)
@@ -673,61 +671,126 @@ class ScreenCaptureService : Service() {
      */
     private fun createOffer() {
         try {
-            // 创建PeerConnection
-            val rtcConfig = PeerConnection.RTCConfiguration(listOf())
+            Log.d(TAG, "开始创建Offer，视频轨道状态: videoTrack=${videoTrack != null}, trackAdded=$trackAdded")
+            
+            // 每次创建Offer前，重置PeerConnection和trackAdded，确保addTrack生效
+            peerConnection?.close()
+            peerConnection = null
+            trackAdded = false
+            
+            // 确保视频轨道已创建
+            if (videoTrack == null) {
+                Log.e(TAG, "视频轨道未创建，无法创建Offer")
+                return
+            }
+            
+            // 配置STUN服务器
+            val iceServers = listOf(
+                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
+            )
+            
+            val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
+                // 设置ICE传输策略
+                iceTransportsType = PeerConnection.IceTransportsType.ALL
+                // 设置RTCP复用策略
+                rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
+            }
+            
             peerConnection = factory?.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
                 override fun onIceCandidate(candidate: IceCandidate?) {
-                    candidate?.let { sendIceCandidate(it) }
+                    candidate?.let { 
+                        Log.d(TAG, "发送端生成ICE候选: ${candidate.sdp}")
+                        sendIceCandidate(it) 
+                    }
                 }
                 
-                override fun onSignalingChange(state: PeerConnection.SignalingState?) {}
-                override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {}
-                override fun onIceConnectionReceivingChange(receiving: Boolean) {}
-                override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {}
-                override fun onAddStream(stream: MediaStream?) {}
-                override fun onRemoveStream(stream: MediaStream?) {}
-                override fun onDataChannel(channel: DataChannel?) {}
-                override fun onRenegotiationNeeded() {}
-                override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {}
-                override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {}
+                override fun onSignalingChange(state: PeerConnection.SignalingState?) {
+                    Log.d(TAG, "发送端信令状态变化: $state")
+                }
+                override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
+                    Log.d(TAG, "发送端ICE连接状态变化: $state")
+                }
+                override fun onIceConnectionReceivingChange(receiving: Boolean) {
+                    Log.d(TAG, "发送端ICE连接接收状态变化: $receiving")
+                }
+                override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
+                    Log.d(TAG, "发送端ICE收集状态变化: $state")
+                }
+                override fun onAddStream(stream: MediaStream?) {
+                    Log.d(TAG, "发送端添加媒体流: ${stream?.id}")
+                }
+                override fun onRemoveStream(stream: MediaStream?) {
+                    Log.d(TAG, "发送端移除媒体流: ${stream?.id}")
+                }
+                override fun onDataChannel(channel: DataChannel?) {
+                    Log.d(TAG, "发送端数据通道: ${channel?.label()}")
+                }
+                override fun onRenegotiationNeeded() {
+                    Log.d(TAG, "发送端需要重新协商")
+                }
+                override fun onAddTrack(receiver: RtpReceiver?, streams: Array<out MediaStream>?) {
+                    Log.d(TAG, "发送端添加轨道: ${receiver?.track()?.kind()}")
+                }
+                override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>?) {
+                    Log.d(TAG, "发送端ICE候选已移除: ${candidates?.size} 个")
+                }
             })
+            
+            Log.d(TAG, "发送端PeerConnection创建成功，配置了 ${iceServers.size} 个ICE服务器")
             
             // 添加视频轨道
             if (videoTrack != null && !trackAdded) {
-                peerConnection?.addTrack(videoTrack)
+                val result = peerConnection?.addTrack(videoTrack)
                 trackAdded = true
-                Log.d(TAG, "视频轨道已添加")
+                Log.d(TAG, "发送端视频轨道已添加，结果: $result")
+            } else {
+                Log.w(TAG, "发送端视频轨道状态: videoTrack=${videoTrack != null}, trackAdded=$trackAdded")
             }
             
-            // 创建Offer
-            peerConnection?.createOffer(object : SdpObserver {
-                override fun onCreateSuccess(sdp: SessionDescription?) {
-                    Log.d(TAG, "Offer创建成功")
-                    peerConnection?.setLocalDescription(object : SdpObserver {
-                        override fun onCreateSuccess(p0: SessionDescription?) {}
-                        override fun onSetSuccess() {
-                            Log.d(TAG, "本地描述设置成功")
-                            sendOffer(sdp)
-                        }
-                        override fun onCreateFailure(p0: String?) {
-                            Log.e(TAG, "创建本地描述失败: $p0")
-                        }
-                        override fun onSetFailure(p0: String?) {
-                            Log.e(TAG, "设置本地描述失败: $p0")
-                        }
-                    }, sdp)
+            // 延迟一点时间确保轨道添加完成
+            Handler(Looper.getMainLooper()).postDelayed({
+                // 创建Offer - 使用高质量视频约束
+                val constraints = MediaConstraints().apply {
+                    mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+                    mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "false"))
+                    // 设置高质量视频参数
+                    optional.add(MediaConstraints.KeyValuePair("DtlsSrtpKeyAgreement", "true"))
+                    // 添加视频质量约束
+                    optional.add(MediaConstraints.KeyValuePair("googCpuOveruseDetection", "false"))
+                    optional.add(MediaConstraints.KeyValuePair("googPayloadPadding", "false"))
+                    optional.add(MediaConstraints.KeyValuePair("googScreencastMinBitrate", "1000"))
                 }
-                override fun onSetSuccess() {}
-                override fun onCreateFailure(p0: String?) {
-                    Log.e(TAG, "创建Offer失败: $p0")
-                }
-                override fun onSetFailure(p0: String?) {
-                    Log.e(TAG, "设置Offer失败: $p0")
-                }
-            }, MediaConstraints())
+                
+                peerConnection?.createOffer(object : SdpObserver {
+                    override fun onCreateSuccess(sdp: SessionDescription?) {
+                        Log.d(TAG, "发送端Offer创建成功，SDP长度: ${sdp?.description?.length}")
+                        peerConnection?.setLocalDescription(object : SdpObserver {
+                            override fun onCreateSuccess(p0: SessionDescription?) {}
+                            override fun onSetSuccess() {
+                                Log.d(TAG, "发送端本地描述设置成功")
+                                sendOffer(sdp)
+                            }
+                            override fun onCreateFailure(p0: String?) {
+                                Log.e(TAG, "发送端创建本地描述失败: $p0")
+                            }
+                            override fun onSetFailure(p0: String?) {
+                                Log.e(TAG, "发送端设置本地描述失败: $p0")
+                            }
+                        }, sdp)
+                    }
+                    override fun onSetSuccess() {}
+                    override fun onCreateFailure(p0: String?) {
+                        Log.e(TAG, "发送端创建Offer失败: $p0")
+                    }
+                    override fun onSetFailure(p0: String?) {
+                        Log.e(TAG, "发送端设置Offer失败: $p0")
+                    }
+                }, constraints)
+            }, 500) // 延迟500ms确保轨道添加完成
             
         } catch (e: Exception) {
-            Log.e(TAG, "创建Offer失败", e)
+            Log.e(TAG, "发送端创建Offer失败", e)
         }
     }
     
@@ -736,10 +799,7 @@ class ScreenCaptureService : Service() {
      */
     private fun sendOffer(sdp: SessionDescription?) {
         try {
-            val json = JSONObject()
-            json.put("type", "offer")
-            json.put("sdp", sdp?.description)
-            ws?.send(json.toString())
+            webRTCManager?.sendOffer(sdp?.description ?: "")
             Log.d(TAG, "Offer已发送")
         } catch (e: Exception) {
             Log.e(TAG, "发送Offer失败", e)
@@ -751,15 +811,28 @@ class ScreenCaptureService : Service() {
      */
     private fun sendIceCandidate(candidate: IceCandidate) {
         try {
-            val json = JSONObject()
-            json.put("type", "ice_candidate")
-            json.put("candidate", candidate.sdp)
-            json.put("sdpMLineIndex", candidate.sdpMLineIndex)
-            json.put("sdpMid", candidate.sdpMid)
-            ws?.send(json.toString())
+            webRTCManager?.sendIceCandidate(candidate)
             Log.d(TAG, "ICE候选已发送")
         } catch (e: Exception) {
             Log.e(TAG, "发送ICE候选失败", e)
+        }
+    }
+    
+    /**
+     * 处理连接请求的公共方法
+     */
+    fun handleConnectRequestFromManager(sourceClientId: Int) {
+        try {
+            Log.d(TAG, "收到来自WebRTCManager的连接请求，客户端ID: $sourceClientId")
+            
+            // 开始屏幕捕获
+            startScreenCapture()
+            
+            // 创建Offer
+            createOffer()
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "处理连接请求失败", e)
         }
     }
 } 

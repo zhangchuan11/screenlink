@@ -5,38 +5,55 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.screenlink.newapp.WebRTCManager.ClientInfo
+import com.screenlink.newapp.WebRTCManager.SenderInfo
 
-class ClientAdapter(private var clients: List<ClientInfo>) : RecyclerView.Adapter<ClientAdapter.ClientViewHolder>() {
+class ClientAdapter(
+    private var senders: List<SenderInfo>,
+    private var onSenderClickListener: ((SenderInfo) -> Unit)? = null
+) : RecyclerView.Adapter<ClientAdapter.SenderViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ClientViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SenderViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(android.R.layout.simple_list_item_1, parent, false)
-        return ClientViewHolder(view)
+        return SenderViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ClientViewHolder, position: Int) {
-        holder.bind(clients[position])
+    override fun onBindViewHolder(holder: SenderViewHolder, position: Int) {
+        holder.bind(senders[position])
     }
 
-    override fun getItemCount(): Int = clients.size
+    override fun getItemCount(): Int = senders.size
 
-    fun updateClients(newClients: List<ClientInfo>) {
-        clients = newClients
+    fun updateSenders(newSenders: List<SenderInfo>) {
+        senders = newSenders
         notifyDataSetChanged()
     }
 
-    fun getClientAt(position: Int): ClientInfo? {
-        return if (position >= 0 && position < clients.size) {
-            clients[position]
+    fun setOnSenderClickListener(listener: (SenderInfo) -> Unit) {
+        onSenderClickListener = listener
+    }
+
+    fun getSenderAt(position: Int): SenderInfo? {
+        return if (position >= 0 && position < senders.size) {
+            senders[position]
         } else {
             null
         }
     }
 
-    class ClientViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    inner class SenderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(android.R.id.text1)
-        fun bind(client: ClientInfo) {
-            textView.text = client.name
+        
+        fun bind(sender: SenderInfo) {
+            val status = if (sender.available) "可用" else "不可用"
+            textView.text = "${sender.name} (ID: ${sender.id}) - $status"
+            
+            itemView.setOnClickListener {
+                android.util.Log.d("ClientAdapter", "发送端项被点击: ${sender.name} (ID: ${sender.id})")
+                onSenderClickListener?.invoke(sender)
+            }
+            
+            // 设置背景色以显示可点击状态
+            itemView.setBackgroundResource(android.R.drawable.list_selector_background)
         }
     }
 } 

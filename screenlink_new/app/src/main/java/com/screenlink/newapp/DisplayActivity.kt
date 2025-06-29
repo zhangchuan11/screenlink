@@ -97,7 +97,9 @@ class DisplayActivity : Activity() {
     
     private fun bindRemoteVideoTrack() {
         val videoTrack = MainActivity.getWebRTCManager()?.getRemoteVideoTrack()
+        Log.d(TAG, "尝试绑定远端视频轨道，videoTrack=${videoTrack != null}")
         if (videoTrack != null) {
+            Log.d(TAG, "远端视频轨道详情: ID=${videoTrack.id()}, enabled=${videoTrack.enabled()}")
             videoTrack.addSink(surfaceView)
             Log.d(TAG, "已绑定远端视频轨道: ${videoTrack.id()}")
         } else {

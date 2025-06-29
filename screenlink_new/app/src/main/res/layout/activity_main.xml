@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ScreenLink"
+        android:text="ScreenLink 投屏接收端"
         android:textSize="24sp"
         android:gravity="center"
         android:layout_marginBottom="16dp" />
@@ -17,7 +17,7 @@
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="状态: 未连接"
+        android:text="状态: 正在连接服务器..."
         android:textSize="16sp"
         android:layout_marginBottom="8dp" />
 
@@ -26,7 +26,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="未选择客户端"
+        android:text="未选择发送端"
         android:textSize="14sp"
         android:gravity="center" />
 
@@ -40,24 +40,24 @@
         android:layout_marginBottom="8dp" />
 
     <Button
-        android:id="@+id/btnModeToggle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="切换到发送端模式"
-        android:layout_marginBottom="8dp" />
-
-    <Button
         android:id="@+id/btnConnect"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="连接"
+        android:text="连接状态"
         android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnStartSender"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="启动发送端服务"
         android:layout_marginBottom="16dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="在线客户端:"
+        android:text="在线发送端 (点击开始投屏):"
         android:textSize="16sp"
         android:layout_marginBottom="8dp" />
 

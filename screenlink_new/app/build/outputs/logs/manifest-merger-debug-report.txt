@@ -267,7 +267,7 @@ ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\
 activity#com.screenlink.newapp.DisplayActivity
 ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:97:9-101:74
 	android:screenOrientation
-		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:100:13-50
+		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:100:13-49
 	android:exported
 		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:99:13-37
 	android:theme

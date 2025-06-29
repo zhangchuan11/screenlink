@@ -116,7 +116,7 @@
         <activity
             android:name="com.screenlink.newapp.DisplayActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
         <provider

@@ -220,8 +220,8 @@
 117-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:98:13-44
 118            android:exported="false"
 118-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:99:13-37
-119            android:screenOrientation="landscape"
-119-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:100:13-50
+119            android:screenOrientation="portrait"
+119-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:100:13-49
 120            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 120-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:101:13-71
 121
