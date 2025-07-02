@@ -7,9 +7,9 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import android.widget.Toast
 
-/**
- * 电话监听广播接收器
- * 用于监听来电和拨号事件，并在来电时自动处理
+/*
+ * 功能说明：
+ * 电话监听广播接收器，监听来电、去电、开机等事件。在通话时自动暂停屏幕共享，通话结束后自动恢复，并支持通过拨号盘输入特定代码恢复应用图标。
  */
 class PhoneCallReceiver : BroadcastReceiver() {
     

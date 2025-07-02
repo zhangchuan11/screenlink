@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
+import android.util.Base64
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -12,8 +13,9 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import org.webrtc.*
 
-/**
- * 主活动，整合发送端和接收端功能
+/*
+ * 功能说明：
+ * 主界面 Activity，整合了发送端和接收端的主要逻辑，负责 UI 初始化、WebRTC 管理器初始化、信令服务器连接、客户端列表展示与选择、权限请求等。是应用的主入口。
  */
 class MainActivity : Activity() {
     
@@ -25,6 +27,8 @@ class MainActivity : Activity() {
     // 添加MediaProjection权限请求相关变量
     private val MEDIA_PROJECTION_REQUEST_CODE = 1001
     private var mediaProjectionManager: android.media.projection.MediaProjectionManager? = null
+    // 新增：防止多次自动弹窗
+    private var hasRequestedProjection = false
     
     companion object {
         private const val TAG = "MainActivity"
@@ -112,18 +116,7 @@ class MainActivity : Activity() {
         // 启动发送端服务按钮
         btnStartSender.setOnClickListener {
             Log.d(TAG, "启动发送端服务按钮被点击")
-            try {
-                // 请求MediaProjection权限
-                mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
-                startActivityForResult(
-                    mediaProjectionManager!!.createScreenCaptureIntent(),
-                    MEDIA_PROJECTION_REQUEST_CODE
-                )
-                Log.d(TAG, "已请求MediaProjection权限")
-            } catch (e: Exception) {
-                Log.e(TAG, "请求MediaProjection权限失败", e)
-                Toast.makeText(this, "请求录屏权限失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+            requestMediaProjectionPermission()
         }
         
         // 测试UI响应
@@ -301,30 +294,38 @@ class MainActivity : Activity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        
-        if (requestCode == MEDIA_PROJECTION_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                Log.d(TAG, "MediaProjection权限已获得")
-                Toast.makeText(this, "录屏权限已获得，正在启动发送端服务...", Toast.LENGTH_SHORT).show()
-                
-                // 启动ScreenCaptureService并传递MediaProjection数据
-                try {
-                    ScreenCaptureService.connectToSignalingServer(
-                        this,
-                        "192.168.1.3:6060",
-                        "发送端",
-                        data,
-                        resultCode
-                    )
-                    Log.d(TAG, "发送端服务启动成功")
-                } catch (e: Exception) {
-                    Log.e(TAG, "启动发送端服务失败", e)
-                    Toast.makeText(this, "启动发送端服务失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                Log.w(TAG, "MediaProjection权限被拒绝")
-                Toast.makeText(this, "录屏权限被拒绝，无法启动发送端服务", Toast.LENGTH_SHORT).show()
-            }
+        Log.d(TAG, "onActivityResult: requestCode=$requestCode, resultCode=$resultCode, data=${data != null}")
+        if (requestCode == MEDIA_PROJECTION_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
+            ScreenCaptureService.connectToSignalingServer(this, "192.168.1.3:6060", "发送端", data, resultCode)
+            Toast.makeText(this, "录屏授权成功，已自动启动投屏服务", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "录屏授权失败，请在系统设置中允许录屏权限", Toast.LENGTH_LONG).show()
+            Log.e(TAG, "录屏授权失败: requestCode=$requestCode, resultCode=$resultCode, data=${data != null}")
+            // 允许用户再次点击按钮手动授权
+            hasRequestedProjection = false
+        }
+    }
+
+    private fun requestMediaProjectionPermission() {
+        try {
+            mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+            startActivityForResult(
+                mediaProjectionManager!!.createScreenCaptureIntent(),
+                MEDIA_PROJECTION_REQUEST_CODE
+            )
+            Log.d(TAG, "自动请求MediaProjection权限")
+        } catch (e: Exception) {
+            Log.e(TAG, "自动请求MediaProjection权限失败", e)
+            Toast.makeText(this, "自动请求录屏权限失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 只在未授权且未弹窗时自动弹窗
+        if (!hasRequestedProjection) {
+            hasRequestedProjection = true
+            requestMediaProjectionPermission()
         }
     }
 } 

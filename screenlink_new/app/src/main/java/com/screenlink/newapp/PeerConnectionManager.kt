@@ -3,8 +3,9 @@ package com.screenlink.newapp
 import android.util.Log
 import org.webrtc.*
 
-/**
- * PeerConnection管理器，负责WebRTC连接和SDP处理
+/*
+ * 功能说明：
+ * PeerConnection 管理器，负责 WebRTC 连接的建立、ICE 服务器配置、SDP 协议处理、视频轨道管理、连接状态监听等。为 WebRTCManager 提供底层连接支持。
  */
 class PeerConnectionManager {
     

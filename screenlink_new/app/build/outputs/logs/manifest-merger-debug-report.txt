@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-104:12
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-104:12
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-104:12
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-104:12
+ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-106:12
+INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-106:12
+INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-106:12
+INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:2:1-106:12
 MERGED from [com.google.android.material:material:1.9.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\bfaafe7a75a9c3a132722bf3bcebc020\transformed\material-1.9.0\AndroidManifest.xml:17:1-26:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.12\transforms\9e4c719cacb2e65336e31ea47fd9357c\transformed\constraintlayout-2.1.4\AndroidManifest.xml:2:1-11:12
 MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\3cb0cc5a51ef7b1bee9eb93dbd04f23c\transformed\jetified-appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
@@ -118,8 +118,8 @@ ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\
 	android:name
 		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:22:9-50
 application
-ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:25:5-102:19
-INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:25:5-102:19
+ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:25:5-104:19
+INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:25:5-104:19
 MERGED from [com.google.android.material:material:1.9.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\bfaafe7a75a9c3a132722bf3bcebc020\transformed\material-1.9.0\AndroidManifest.xml:24:5-20
 MERGED from [com.google.android.material:material:1.9.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\bfaafe7a75a9c3a132722bf3bcebc020\transformed\material-1.9.0\AndroidManifest.xml:24:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\Administrator\.gradle\caches\8.12\transforms\9e4c719cacb2e65336e31ea47fd9357c\transformed\constraintlayout-2.1.4\AndroidManifest.xml:9:5-20
@@ -274,6 +274,12 @@ ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\
 		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:101:13-71
 	android:name
 		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:98:13-44
+activity#com.screenlink.newapp.TestActivity
+ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:103:9-74
+	android:exported
+		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:103:48-71
+	android:name
+		ADDED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:103:19-47
 uses-sdk
 INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml

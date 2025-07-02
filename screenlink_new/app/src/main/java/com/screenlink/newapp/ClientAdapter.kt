@@ -1,3 +1,7 @@
+/*
+ * 功能说明：
+ * RecyclerView 适配器，用于展示在线发送端列表，支持点击事件回调，刷新数据等。配合主界面实现发送端选择。
+ */
 package com.screenlink.newapp
 
 import android.view.LayoutInflater

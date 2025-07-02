@@ -1,3 +1,7 @@
+/*
+ * 功能说明：
+ * UI 管理器，负责主界面各个控件的创建、状态管理、事件回调、客户端列表适配等。实现界面与业务逻辑的解耦。
+ */
 package com.screenlink.newapp
 
 import android.content.Context

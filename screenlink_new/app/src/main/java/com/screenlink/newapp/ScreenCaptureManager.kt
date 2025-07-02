@@ -8,8 +8,9 @@ import android.media.projection.MediaProjectionManager
 import android.util.Log
 import org.webrtc.*
 
-/**
- * 屏幕捕获管理器，负责屏幕录制权限和视频捕获
+/*
+ * 功能说明：
+ * 屏幕捕获管理器，负责屏幕录制权限申请、MediaProjection 管理、视频采集与释放、资源清理等。为屏幕共享功能提供支持。
  */
 class ScreenCaptureManager(private val context: Context) {
     

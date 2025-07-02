@@ -13,9 +13,9 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 
-/**
- * 应用图标工具类，用于管理应用图标的显示和隐藏
- * 以及相关的UI反馈（Toast、Notification）
+/*
+ * 功能说明：
+ * 应用图标工具类，负责应用图标的显示/隐藏、状态检测、通知显示、LauncherActivity 检查等。支持通过文件或拨号盘触发图标恢复。
  */
 object AppIconUtils {
     

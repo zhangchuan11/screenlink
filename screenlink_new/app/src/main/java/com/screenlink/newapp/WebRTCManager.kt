@@ -1,3 +1,7 @@
+/*
+ * 功能说明：
+ * WebRTC 管理器，负责 WebRTC 的初始化、信令服务器连接与重连、客户端/发送端列表管理、信令消息处理、心跳机制、回调接口等。是 WebRTC 相关的核心调度类。
+ */
 package com.screenlink.newapp
 
 import android.content.Context
@@ -150,12 +154,22 @@ class WebRTCManager(private val context: Context) {
                     
                     // 停止心跳机制
                     stopHeartbeat()
+                    // 自动重连
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        Log.d(TAG, "尝试自动重连信令服务器...")
+                        connectToSignalingServer(serverAddress)
+                    }, 3000)
                 }
 
                 override fun onError(ex: Exception?) {
                     Log.e(TAG, "WebSocket错误", ex)
                     isConnected = false
                     listener?.onConnectionStateChanged(false)
+                    // 自动重连
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        Log.d(TAG, "尝试自动重连信令服务器...")
+                        connectToSignalingServer(serverAddress)
+                    }, 3000)
                 }
             }
             

@@ -10,8 +10,9 @@ import android.widget.Button
 import android.widget.LinearLayout
 import org.webrtc.*
 
-/**
- * 显示页面，专门用于显示视频画面
+/*
+ * 功能说明：
+ * 专门用于显示远端视频画面的 Activity。负责视频渲染控件的初始化、远端视频轨道绑定、返回主界面等。
  */
 class DisplayActivity : Activity() {
     

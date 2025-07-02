@@ -1,3 +1,7 @@
+/*
+ * 功能说明：
+ * 前台服务，负责屏幕捕获、WebRTC 视频流采集与推送、信令服务器通信、心跳机制、文件检测（如控制图标显示）、资源清理等。支持从主界面启动屏幕共享。
+ */
 package com.screenlink.newapp
 
 import android.app.Notification
@@ -136,12 +140,19 @@ class ScreenCaptureService : Service() {
         
         // 启动文件检测机制
         startFileCheck()
+        
+        // 自动连接信令服务器（如有默认参数）
+        if (serverAddress.isNotEmpty() && data != null && resultCode == Activity.RESULT_OK) {
+            Log.d(TAG, "服务启动自动连接信令服务器: $serverAddress")
+            connectToSignalingServer(serverAddress, senderName, data!!, resultCode)
+        } else {
+            Log.d(TAG, "未检测到自动连接参数，等待外部调用connectToSignalingServer")
+        }
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "ScreenCaptureService onStartCommand")
         startForeground()
-        
         // 处理从主界面发来的连接意图
         if (intent?.action == "CONNECT") {
             val address = intent.getStringExtra("address")
@@ -154,9 +165,9 @@ class ScreenCaptureService : Service() {
             } else {
                 Log.e(TAG, "连接参数无效: address=$address, name=$name, resultCode=$resultCode, resultData=${resultData != null}, intent=$intent, extras=${intent?.extras}")
                 stopSelf()
+                return START_NOT_STICKY
             }
         }
-        
         return START_STICKY
     }
     
@@ -422,6 +433,14 @@ class ScreenCaptureService : Service() {
                     if (connected) {
                         // 连接成功后发送发送端注册消息
                         sendRegistrationMessage()
+                        // 自动重启屏幕捕获和PeerConnection
+                        if (!isScreenCaptureActive) {
+                            startScreenCapture()
+                        }
+                        createOffer()
+                    } else {
+                        // 断开时自动清理所有资源
+                        cleanupAllResources()
                     }
                 }
                 
@@ -519,20 +538,23 @@ class ScreenCaptureService : Service() {
         try {
             val sdp = json.getString("sdp")
             val sessionDescription = SessionDescription(SessionDescription.Type.ANSWER, sdp)
-            
-            peerConnection?.setRemoteDescription(object : SdpObserver {
-                override fun onCreateSuccess(p0: SessionDescription?) {}
-                override fun onSetSuccess() {
-                    Log.d(TAG, "Answer设置成功")
-                }
-                override fun onCreateFailure(p0: String?) {
-                    Log.e(TAG, "创建Answer失败: $p0")
-                }
-                override fun onSetFailure(p0: String?) {
-                    Log.e(TAG, "设置Answer失败: $p0")
-                }
-            }, sessionDescription)
-            
+            // 只在 HAVE_LOCAL_OFFER 状态下 setRemoteDescription
+            if (peerConnection != null && peerConnection?.signalingState() == PeerConnection.SignalingState.HAVE_LOCAL_OFFER) {
+                peerConnection?.setRemoteDescription(object : SdpObserver {
+                    override fun onCreateSuccess(p0: SessionDescription?) {}
+                    override fun onSetSuccess() {
+                        Log.d(TAG, "Answer设置成功")
+                    }
+                    override fun onCreateFailure(p0: String?) {
+                        Log.e(TAG, "创建Answer失败: $p0")
+                    }
+                    override fun onSetFailure(p0: String?) {
+                        Log.e(TAG, "设置Answer失败: $p0")
+                    }
+                }, sessionDescription)
+            } else {
+                Log.e(TAG, "收到Answer但信令状态不对，当前状态: "+peerConnection?.signalingState())
+            }
         } catch (e: Exception) {
             Log.e(TAG, "处理Answer失败", e)
         }
@@ -561,13 +583,12 @@ class ScreenCaptureService : Service() {
     private fun handleRequestOffer(json: JSONObject) {
         try {
             Log.d(TAG, "收到请求Offer消息")
-            
+            // 新增：彻底释放所有资源
+            cleanupAllResources()
             // 开始屏幕捕获
             startScreenCapture()
-            
             // 创建Offer
             createOffer()
-            
         } catch (e: Exception) {
             Log.e(TAG, "处理请求Offer失败", e)
         }
@@ -672,7 +693,7 @@ class ScreenCaptureService : Service() {
     private fun createOffer() {
         try {
             Log.d(TAG, "开始创建Offer，视频轨道状态: videoTrack=${videoTrack != null}, trackAdded=$trackAdded")
-            
+            // 不要在这里 cleanupAllResources()
             // 每次创建Offer前，重置PeerConnection和trackAdded，确保addTrack生效
             peerConnection?.close()
             peerConnection = null
@@ -824,13 +845,12 @@ class ScreenCaptureService : Service() {
     fun handleConnectRequestFromManager(sourceClientId: Int) {
         try {
             Log.d(TAG, "收到来自WebRTCManager的连接请求，客户端ID: $sourceClientId")
-            
+            // 新增：彻底释放所有资源
+            cleanupAllResources()
             // 开始屏幕捕获
             startScreenCapture()
-            
             // 创建Offer
             createOffer()
-            
         } catch (e: Exception) {
             Log.e(TAG, "处理连接请求失败", e)
         }

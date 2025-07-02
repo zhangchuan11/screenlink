@@ -15,8 +15,9 @@ import android.os.Looper
 import android.util.Log
 import java.io.File
 
-/**
- * 后台服务，确保应用可以在后台运行
+/*
+ * 功能说明：
+ * 后台服务，确保应用在后台持续运行。实现前台通知、保活机制、定时检测文件（如控制图标显示）、服务启动与停止等。
  */
 class BackgroundService : Service() {
     

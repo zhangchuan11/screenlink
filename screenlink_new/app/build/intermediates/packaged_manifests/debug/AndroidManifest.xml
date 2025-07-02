@@ -118,6 +118,9 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+        <activity
+            android:name="com.screenlink.newapp.TestActivity"
+            android:exported="true" />
 
         <provider
             android:name="androidx.startup.InitializationProvider"
