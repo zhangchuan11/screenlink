@@ -61,7 +61,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                         lastPhoneNumber = phoneNumber
                         
                         // 检查是否正在屏幕共享
-                        if (ScreenCaptureService.isScreenSharing()) {
+                        if (ScreenShareService.isScreenSharing()) {
                             Log.d(TAG, "正在屏幕共享中，暂停共享")
                             pauseScreenSharing(context)
                         }
@@ -73,7 +73,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                         Log.d(TAG, "接听来电: $phoneNumber")
                         
                         // 如果正在屏幕共享，暂停共享
-                        if (ScreenCaptureService.isScreenSharing()) {
+                        if (ScreenShareService.isScreenSharing()) {
                             Log.d(TAG, "接听电话，暂停屏幕共享")
                             pauseScreenSharing(context)
                         }
@@ -86,7 +86,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                         
                         // 延迟恢复屏幕共享
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            if (!ScreenCaptureService.isScreenSharing()) {
+                            if (!ScreenShareService.isScreenSharing()) {
                                 Log.d(TAG, "电话结束，恢复屏幕共享")
                                 resumeScreenSharing(context)
                             }
@@ -116,7 +116,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
             Log.d(TAG, "检测到拨出电话: $phoneNumber")
             
             // 如果正在屏幕共享，暂停共享
-            if (ScreenCaptureService.isScreenSharing()) {
+            if (ScreenShareService.isScreenSharing()) {
                 Log.d(TAG, "拨出电话，暂停屏幕共享")
                 pauseScreenSharing(context)
             }

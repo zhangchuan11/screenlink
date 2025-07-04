@@ -3,9 +3,11 @@ local
 id btnConnect
 id btnStartSender
 id recyclerViewClients
+id remote_surface
 id tvIconStatus
 id tvSelectedClient
 id tvStatus
+layout activity_display
 layout activity_main
 mipmap ic_launcher
 mipmap ic_launcher_round

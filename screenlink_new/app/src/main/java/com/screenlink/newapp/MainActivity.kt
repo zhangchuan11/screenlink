@@ -3,6 +3,8 @@ package com.screenlink.newapp
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.util.Base64
@@ -11,7 +13,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
-import org.webrtc.*
+import org.webrtc.SurfaceViewRenderer
 
 /*
  * 功能说明：
@@ -20,9 +22,105 @@ import org.webrtc.*
 class MainActivity : Activity() {
     
     // 管理器
-    private lateinit var webRTCManager: WebRTCManager
-    private lateinit var peerConnectionManager: PeerConnectionManager
+    private var screenShareService: ScreenShareService? = null
+    private var isServiceBound = false
     private lateinit var clientAdapter: ClientAdapter
+    private val serviceConnection = object : android.content.ServiceConnection {
+        override fun onServiceConnected(name: android.content.ComponentName?, service: android.os.IBinder?) {
+            Log.d("MainActivity", "[日志追踪] onServiceConnected 被调用")
+            val binder = service as? ScreenShareService.LocalBinder
+            screenShareService = binder?.getService()
+            isServiceBound = true
+            screenShareServiceInstance = screenShareService
+            
+            // 检查连接状态，避免重复连接
+            if (screenShareService?.isConnected() != true) {
+                Log.d("MainActivity", "服务未连接，开始连接到信令服务器")
+                screenShareService?.connectToSignalingServer("192.168.1.2:6060")
+            } else {
+                Log.d("MainActivity", "服务已连接，跳过重复连接")
+            }
+            
+            screenShareService?.setWebRTCListener(object : ScreenShareService.WebRTCListener {
+                override fun onConnectionStateChanged(connected: Boolean) {
+                    runOnUiThread {
+                        val status = screenShareService?.getConnectionStatus() ?: "未知状态"
+                        val msg = if (connected) "已连接服务器" else "已断开服务器"
+                        Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, "弹窗: $msg")
+                        // 更新状态文本
+                        findViewById<TextView>(R.id.tvStatus)?.text = "连接状态: $status"
+                    }
+                }
+                override fun onSenderListReceived(senders: List<ScreenShareService.SenderInfo>) {
+                    runOnUiThread {
+                        Log.d(TAG, "收到发送端列表更新: ${senders.size} 个发送端")
+                        
+                        // 检查发送端状态变化
+                        val availableSenders = senders.filter { it.available }
+                        val unavailableSenders = senders.filter { !it.available }
+                        
+                        // 显示详细的状态信息
+                        val statusText = buildString {
+                            if (availableSenders.isNotEmpty()) {
+                                append("🟢 可用发送端: ${availableSenders.joinToString(", ") { it.name }}")
+                            }
+                            if (unavailableSenders.isNotEmpty()) {
+                                if (isNotEmpty()) append("\n")
+                                append("🔴 不可用发送端: ${unavailableSenders.joinToString(", ") { it.name }}")
+                            }
+                        }
+                        
+                        // 更新状态文本
+                        findViewById<TextView>(R.id.tvStatus)?.text = statusText
+                        
+                        // 如果有可用发送端，显示通知
+                        if (availableSenders.isNotEmpty()) {
+                            val availableNames = availableSenders.joinToString(", ") { it.name }
+                            Toast.makeText(this@MainActivity, "发现可用发送端: $availableNames", Toast.LENGTH_LONG).show()
+                            Log.d(TAG, "弹窗: 发现可用发送端: $availableNames")
+                        }
+                        
+                        for (sender in senders) {
+                            Log.d(TAG, "发送端: ID=${sender.id}, 名称=${sender.name}, 可用=${sender.available}, 时间戳=${sender.timestamp}")
+                        }
+                        clientAdapter.updateSenders(senders)
+                        Log.d(TAG, "已调用 clientAdapter.updateSenders")
+                    }
+                }
+                override fun onOfferReceived(sdp: String) {}
+                override fun onAnswerReceived(sdp: String) {}
+                override fun onIceCandidateReceived(candidate: String, sdpMLineIndex: Int, sdpMid: String) {}
+                override fun onRequestOffer() {}
+                override fun onClientListReceived(clients: List<ScreenShareService.ClientInfo>) {
+                    runOnUiThread {
+                        clientAdapter.updateClients(clients)
+                    }
+                }
+                override fun onConnectRequestReceived(sourceClientId: Int) {}
+                override fun onRemoteVideoTrackReceived(track: org.webrtc.VideoTrack) {
+                    runOnUiThread {
+                        Log.d(TAG, "收到远端视频轨道: ${track.id()}")
+                        Toast.makeText(this@MainActivity, "收到远端视频轨道，准备跳转到全屏显示", Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, "弹窗: 收到远端视频轨道，准备跳转到全屏显示")
+                        
+                        // 直接跳转到全屏显示页面
+                        startDisplayActivity()
+                    }
+                }
+                override fun onError(error: String) {
+                    runOnUiThread {
+                        Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, "弹窗: $error")
+                    }
+                }
+            })
+        }
+        override fun onServiceDisconnected(name: android.content.ComponentName?) {
+            screenShareService = null
+            isServiceBound = false
+        }
+    }
     
     // 添加MediaProjection权限请求相关变量
     private val MEDIA_PROJECTION_REQUEST_CODE = 1001
@@ -30,13 +128,12 @@ class MainActivity : Activity() {
     // 新增：防止多次自动弹窗
     private var hasRequestedProjection = false
     
+    // 添加按钮成员变量
+    private lateinit var btnStartSender: Button
+    
     companion object {
         private const val TAG = "MainActivity"
-        
-        // 静态WebRTC管理器实例，供DisplayActivity访问
-        private var webRTCManagerInstance: WebRTCManager? = null
-        
-        fun getWebRTCManager(): WebRTCManager? = webRTCManagerInstance
+        var screenShareServiceInstance: ScreenShareService? = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,10 +142,11 @@ class MainActivity : Activity() {
         Log.d(TAG, "MainActivity onCreate 开始")
         
         // 启动后台服务
-        BackgroundService.startService(this)
-        
-        // 初始化管理器
-        initializeManagers()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(Intent(this, ScreenShareService::class.java))
+        } else {
+            startService(Intent(this, ScreenShareService::class.java))
+        }
         
         // 创建UI
         setContentView(R.layout.activity_main)
@@ -57,7 +155,7 @@ class MainActivity : Activity() {
         // 初始化控件
         val tvSelectedClient = findViewById<TextView>(R.id.tvSelectedClient)
         val btnConnect = findViewById<Button>(R.id.btnConnect)
-        val btnStartSender = findViewById<Button>(R.id.btnStartSender)
+        btnStartSender = findViewById<Button>(R.id.btnStartSender)
         val recyclerViewClients = findViewById<RecyclerView>(R.id.recyclerViewClients)
         
         Log.d(TAG, "UI组件初始化完成: tvSelectedClient=${tvSelectedClient != null}, btnConnect=${btnConnect != null}, btnStartSender=${btnStartSender != null}, recyclerViewClients=${recyclerViewClients != null}")
@@ -74,11 +172,12 @@ class MainActivity : Activity() {
             // 如果发送端可用，尝试连接
             if (sender.available) {
                 // 这里需要实现选择发送端的逻辑
-                webRTCManager.selectSender(sender.id)
+                screenShareService?.selectSender(sender.id)
                 tvStatus.text = "正在连接到发送端: ${sender.name}"
             } else {
                 tvStatus.text = "发送端不可用: ${sender.name}"
                 Toast.makeText(this@MainActivity, "发送端不可用", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "弹窗: 发送端不可用")
             }
         }
         recyclerViewClients.adapter = clientAdapter
@@ -93,173 +192,46 @@ class MainActivity : Activity() {
         tvStatus.text = "接收端模式 - 正在连接服务器..."
         
         // 自动连接到默认服务器
-        webRTCManager.connectToSignalingServer("192.168.1.3:6060")
+        // screenShareService?.connectToSignalingServer("192.168.1.2:6060")
 
         // 连接按钮显示连接状态
         btnConnect.setOnClickListener {
             Log.d(TAG, "连接按钮被点击")
-            val status = if (webRTCManager.isConnected()) "已连接" else "未连接"
+            val status = if (screenShareService?.isConnected() == true) "已连接" else "未连接"
             Toast.makeText(this, "连接状态: $status", Toast.LENGTH_SHORT).show()
-            Log.d(TAG, "显示连接状态Toast: $status")
+            Log.d(TAG, "弹窗: 连接状态: $status")
             
             // 检查远端视频轨道并手动启动显示页面
-            val remoteVideoTrack = webRTCManager.getRemoteVideoTrack()
+            val remoteVideoTrack = screenShareService?.remoteVideoTrack
             if (remoteVideoTrack != null) {
                 Log.d(TAG, "手动启动显示页面，远端视频轨道ID: ${remoteVideoTrack.id()}")
                 startDisplayActivity()
             } else {
                 Log.d(TAG, "远端视频轨道未获取，无法启动显示页面")
                 Toast.makeText(this, "远端视频轨道未获取", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "弹窗: 远端视频轨道未获取")
             }
         }
         
         // 启动发送端服务按钮
         btnStartSender.setOnClickListener {
             Log.d(TAG, "启动发送端服务按钮被点击")
+            hasRequestedProjection = true
             requestMediaProjectionPermission()
+            btnStartSender.isEnabled = false // 禁用按钮
+            // 不要在这里调用 startScreenCapture
+            // Handler().postDelayed({ btnStartSender.isEnabled = true }, 2000) // 建议在采集真正开始后再启用
         }
         
         // 测试UI响应
         Log.d(TAG, "MainActivity onCreate 完成，显示测试Toast")
         Toast.makeText(this, "应用已启动，UI测试正常", Toast.LENGTH_SHORT).show()
-    }
-    
-    private fun initializeManagers() {
-        // 初始化WebRTC管理器
-        webRTCManager = WebRTCManager(this)
-        webRTCManagerInstance = webRTCManager  // 设置静态实例
-        
-        // 设置客户端名称
-        val deviceName = android.os.Build.MODEL
-        webRTCManager.setClientName(deviceName)
-        Log.d(TAG, "设置客户端名称为: $deviceName")
-        
-        // 设置WebRTC监听器
-        webRTCManager.setListener(object : WebRTCManager.WebRTCListener {
-            override fun onConnectionStateChanged(connected: Boolean) {
-                runOnUiThread {
-                    val btnConnect = findViewById<Button>(R.id.btnConnect)
-                    val tvStatus = findViewById<TextView>(R.id.tvStatus)
-                    btnConnect.text = if (connected) "已连接" else "未连接"
-                    tvStatus.text = if (connected) "状态: 已连接到服务器，等待客户端列表..." else "状态: 连接已断开"
-                }
-            }
-            
-            override fun onSenderListReceived(senders: List<WebRTCManager.SenderInfo>) {
-                Log.d(TAG, "收到发送端列表，数量: ${senders.size}")
-                for (sender in senders) {
-                    Log.d(TAG, "发送端: ID=${sender.id}, 名称=${sender.name}, 可用=${sender.available}")
-                }
-                
-                runOnUiThread {
-                    // 更新发送端列表
-                    clientAdapter.updateSenders(senders)
-                    Log.d(TAG, "发送端列表已更新到UI")
-                    
-                    val tvStatus = findViewById<TextView>(R.id.tvStatus)
-                    tvStatus.text = "状态: 在线发送端数: ${senders.size}，点击发送端开始投屏"
-                    
-                    if (senders.isEmpty()) {
-                        tvStatus.text = "状态: 暂无在线发送端"
-                    }
-                }
-            }
-            
-            override fun onOfferReceived(sdp: String) {
-                peerConnectionManager.setRemoteDescription(sdp, SessionDescription.Type.OFFER)
-            }
-            
-            override fun onAnswerReceived(sdp: String) {
-                // 接收端不需要处理Answer
-            }
-            
-            override fun onIceCandidateReceived(candidate: String, sdpMLineIndex: Int, sdpMid: String) {
-                peerConnectionManager.addIceCandidate(candidate, sdpMLineIndex, sdpMid)
-            }
-            
-            override fun onRequestOffer() {
-                // 接收端不需要处理Offer请求
-            }
-            
-            override fun onConnectRequestReceived(sourceClientId: Int) {
-                // 接收端不需要处理连接请求
-                Log.d(TAG, "接收端收到连接请求，但不需要处理: $sourceClientId")
-            }
-            
-            override fun onClientListReceived(clients: List<WebRTCManager.ClientInfo>) {
-                // 接收端不需要处理客户端列表
-                Log.d(TAG, "接收端收到客户端列表，但不需要处理，数量: ${clients.size}")
-            }
-            
-            override fun onError(error: String) {
-                Log.e(TAG, "WebRTC错误: $error")
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "连接错误: $error", Toast.LENGTH_LONG).show()
-                    val tvStatus = findViewById<TextView>(R.id.tvStatus)
-                    tvStatus.text = "状态: 连接错误 - $error"
-                }
-            }
-        })
-        
-        // 初始化PeerConnection管理器
-        peerConnectionManager = PeerConnectionManager()
-        webRTCManager.setPeerConnectionManager(peerConnectionManager)
-        peerConnectionManager.setListener(object : PeerConnectionManager.PeerConnectionListener {
-            override fun onIceCandidate(candidate: IceCandidate) {
-                webRTCManager.sendIceCandidate(candidate)
-            }
-            
-            override fun onOfferCreated(sdp: SessionDescription) {
-                // 发送Offer给目标客户端
-                webRTCManager.sendOfferToTarget(sdp.description)
-                Log.d(TAG, "Offer已发送给目标客户端")
-            }
-            
-            override fun onAnswerCreated(sdp: SessionDescription) {
-                webRTCManager.sendAnswer(sdp.description)
-            }
-            
-            override fun onConnectionStateChanged(state: PeerConnection.IceConnectionState) {
-                Log.d(TAG, "连接状态变化: $state")
-                runOnUiThread {
-                    updateConnectionStatus()
-                    
-                    // 当连接建立成功时，自动启动显示页面
-                    if (state == PeerConnection.IceConnectionState.CONNECTED || 
-                        state == PeerConnection.IceConnectionState.COMPLETED) {
-                        Log.d(TAG, "WebRTC连接建立成功，自动启动显示页面")
-                        
-                        // 检查远端视频轨道
-                        val remoteVideoTrack = webRTCManager.getRemoteVideoTrack()
-                        Log.d(TAG, "远端视频轨道状态: ${if (remoteVideoTrack != null) "已获取" else "未获取"}")
-                        
-                        if (remoteVideoTrack != null) {
-                            Log.d(TAG, "远端视频轨道ID: ${remoteVideoTrack.id()}")
-                            startDisplayActivity()
-                        } else {
-                            Log.w(TAG, "远端视频轨道未获取，等待轨道添加...")
-                            // 延迟启动显示页面，等待视频轨道
-                            runOnUiThread {
-                                val handler = Handler(android.os.Looper.getMainLooper())
-                                handler.postDelayed({
-                                    val track = webRTCManager.getRemoteVideoTrack()
-                                    if (track != null) {
-                                        Log.d(TAG, "延迟后获取到远端视频轨道，启动显示页面")
-                                        startDisplayActivity()
-                                    } else {
-                                        Log.e(TAG, "延迟后仍未获取到远端视频轨道")
-                                    }
-                                }, 2000)
-                            }
-                        }
-                    }
-                }
-            }
-        })
-        
-        // 初始化WebRTC
-        webRTCManager.initialize()
-        peerConnectionManager.setFactory(webRTCManager.getFactory())
+        Log.d(TAG, "弹窗: 应用已启动，UI测试正常")
+
+        // 在 onCreate 或需要时启动并绑定服务
+        val intent = android.content.Intent(this, ScreenShareService::class.java)
+        startService(intent)
+        bindService(intent, serviceConnection, android.content.Context.BIND_AUTO_CREATE)
     }
     
     private fun updateIconStatus() {
@@ -270,21 +242,18 @@ class MainActivity : Activity() {
     
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            // 清理资源
-            peerConnectionManager.close()
-            webRTCManager.cleanup()
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "清理资源失败", e)
+        Log.d(TAG, "MainActivity onDestroy 开始")
+        
+        // 解绑服务
+        if (isServiceBound) {
+            unbindService(serviceConnection)
+            isServiceBound = false
         }
-    }
-    
-    private fun updateConnectionStatus() {
-        val tvStatus = findViewById<TextView>(R.id.tvStatus)
-        val status = webRTCManager.getConnectionStatus()
-        tvStatus.text = "状态: $status"
-        Log.d(TAG, "连接状态: $status")
+        
+        // 重置重连计数，避免下次启动时立即重连
+        screenShareService?.resetReconnectAttempts()
+        
+        Log.d(TAG, "MainActivity onDestroy 完成")
     }
     
     private fun startDisplayActivity() {
@@ -296,13 +265,35 @@ class MainActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         Log.d(TAG, "onActivityResult: requestCode=$requestCode, resultCode=$resultCode, data=${data != null}")
         if (requestCode == MEDIA_PROJECTION_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            ScreenCaptureService.connectToSignalingServer(this, "192.168.1.3:6060", "发送端", data, resultCode)
-            Toast.makeText(this, "录屏授权成功，已自动启动投屏服务", Toast.LENGTH_SHORT).show()
+            val granted = screenShareService?.handlePermissionResult(requestCode, resultCode, data) == true
+            if (granted) {
+                // 设置发送端模式
+                screenShareService?.let { service ->
+                    // 通过反射或其他方式设置发送端模式
+                    try {
+                        val isActingAsSenderField = service.javaClass.getDeclaredField("isActingAsSender")
+                        isActingAsSenderField.isAccessible = true
+                        isActingAsSenderField.set(service, true)
+                        Log.d(TAG, "已设置发送端模式")
+                    } catch (e: Exception) {
+                        Log.d(TAG, "设置发送端模式失败: ${e.message}")
+                    }
+                }
+                
+                screenShareService?.startScreenCapture(screenShareService?.factory, screenShareService?.eglBase)
+                Toast.makeText(this, "录屏授权成功，已自动启动投屏服务", Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "弹窗: 录屏授权成功，已自动启动投屏服务")
+                btnStartSender.isEnabled = true // 采集启动后再允许点击
+            } else {
+                Toast.makeText(this, "录屏授权失败，请在系统设置中允许录屏权限", Toast.LENGTH_LONG).show()
+                Log.d(TAG, "弹窗: 录屏授权失败，请在系统设置中允许录屏权限")
+                btnStartSender.isEnabled = true
+            }
         } else {
             Toast.makeText(this, "录屏授权失败，请在系统设置中允许录屏权限", Toast.LENGTH_LONG).show()
-            Log.e(TAG, "录屏授权失败: requestCode=$requestCode, resultCode=$resultCode, data=${data != null}")
-            // 允许用户再次点击按钮手动授权
+            Log.d(TAG, "弹窗: 录屏授权失败，请在系统设置中允许录屏权限")
             hasRequestedProjection = false
+            btnStartSender.isEnabled = true
         }
     }
 
@@ -317,15 +308,16 @@ class MainActivity : Activity() {
         } catch (e: Exception) {
             Log.e(TAG, "自动请求MediaProjection权限失败", e)
             Toast.makeText(this, "自动请求录屏权限失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "弹窗: 自动请求录屏权限失败: ${e.message}")
         }
     }
 
     override fun onResume() {
         super.onResume()
-        // 只在未授权且未弹窗时自动弹窗
-        if (!hasRequestedProjection) {
-            hasRequestedProjection = true
-            requestMediaProjectionPermission()
-        }
+        // 删除自动弹窗逻辑，不再自动申请MediaProjection权限
+        // if (!hasRequestedProjection) {
+        //     hasRequestedProjection = true
+        //     requestMediaProjectionPermission()
+        // }
     }
 } 

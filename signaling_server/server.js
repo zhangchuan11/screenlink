@@ -9,17 +9,13 @@ const clients = new Set();
 // 记录客户端角色（发送者或接收者）
 const clientRoles = new Map(); // 用于存储客户端角色
 
-// 存储发送端信息
+// 存储发送端信息（客户端就是发送端）
 const senders = new Map(); // senderId -> {ws, name, offer, timestamp}
 let nextSenderId = 1;
 
 // 存储接收端信息
 const receivers = new Map(); // receiverId -> {ws, selectedSenderId}
 let nextReceiverId = 1;
-
-// 新增：所有在线客户端
-const allClients = new Map(); // clientId -> {ws, name, id}
-let nextClientId = 1;
 
 console.log('信令服务器已启动，监听端口: 6060');
 
@@ -37,6 +33,12 @@ wss.on('connection', (ws, req) => {
         message: '已连接到信令服务器'
     }));
     
+    // 立即发送当前状态信息
+    setTimeout(() => {
+        // 发送发送端列表
+        sendSenderList(ws);
+    }, 1000); // 延迟1秒发送，确保连接稳定
+    
     // 当收到客户端消息时
     ws.on('message', (message) => {
         try {
@@ -46,30 +48,8 @@ wss.on('connection', (ws, req) => {
             const data = JSON.parse(message);
             console.log(`收到消息类型: ${data.type}`);
             
-            // 新增：处理客户端注册
-            if (data.type === 'register_client') {
-                // 先查找并移除同名的旧客户端
-                for (const [id, client] of allClients) {
-                    if (client.name === data.name) {
-                        allClients.delete(id);
-                        if (client.ws && client.ws.readyState === WebSocket.OPEN) {
-                            client.ws.close();
-                        }
-                        console.log(`检测到同名客户端[${data.name}]，已移除旧的 clientId=${id}`);
-                    }
-                }
-
-                const clientId = nextClientId++;
-                const clientName = data.name || `客户端${clientId}`;
-                allClients.set(clientId, { ws, name: clientName, id: clientId });
-                ws.clientId = clientId;
-                console.log(`新客户端注册: ${clientName} (ID: ${clientId})`);
-                broadcastClientList();
-                return;
-            }
-            
-            // 新增：处理发送端注册
-            if (data.type === 'register_sender') {
+            // 新增：处理发送端注册（客户端就是发送端）
+            if (data.type === 'register_sender' || data.type === 'register_client') {
                 // 先查找并移除同名的旧发送端
                 for (const [id, sender] of senders) {
                     if (sender.name === data.name) {
@@ -105,7 +85,7 @@ wss.on('connection', (ws, req) => {
                     name: senderName
                 }));
                 
-                // 通知所有接收端有新的发送端可用
+                // 立即广播发送端列表更新
                 broadcastSenderList();
                 return;
             }
@@ -116,39 +96,20 @@ wss.on('connection', (ws, req) => {
                 const targetClientId = data.targetClientId;
                 console.log(`收到连接请求: 客户端${sourceClientId} -> 客户端${targetClientId}`);
                 
-                // 首先尝试转发给目标客户端
-                const targetClient = allClients.get(targetClientId);
-                if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
-                    targetClient.ws.send(JSON.stringify({
+                // 查找目标发送端
+                const targetSender = senders.get(targetClientId);
+                if (targetSender && targetSender.ws.readyState === WebSocket.OPEN) {
+                    targetSender.ws.send(JSON.stringify({
                         type: 'connect_request',
                         sourceClientId: sourceClientId
                     }));
-                    console.log(`连接请求已转发给客户端${targetClientId}`);
+                    console.log(`连接请求已转发给发送端${targetClientId}`);
                 } else {
-                    // 如果目标客户端不存在，尝试转发给发送端
-                    console.log(`目标客户端${targetClientId}不可用，尝试转发给发送端`);
-                    
-                    // 查找所有可用的发送端
-                    let forwardedToSender = false;
-                    for (const [senderId, sender] of senders) {
-                        if (sender.ws.readyState === WebSocket.OPEN) {
-                            sender.ws.send(JSON.stringify({
-                                type: 'connect_request',
-                                sourceClientId: sourceClientId
-                            }));
-                            console.log(`连接请求已转发给发送端${senderId} (${sender.name})`);
-                            forwardedToSender = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!forwardedToSender) {
-                        console.log(`没有可用的发送端`);
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            message: '目标客户端和发送端都不可用'
-                        }));
-                    }
+                    console.log(`目标发送端${targetClientId}不可用`);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: '目标发送端不可用'
+                    }));
                 }
                 return;
             }
@@ -195,19 +156,19 @@ wss.on('connection', (ws, req) => {
                 // 通知所有接收端有新的发送端可用
                 broadcastSenderList();
                 
-                // 如果有targetClientId，直接转发给目标客户端
+                // 如果有targetClientId，直接转发给目标发送端
                 if (data.targetClientId) {
-                    const targetClient = allClients.get(data.targetClientId);
-                    if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
+                    const targetSender = senders.get(data.targetClientId);
+                    if (targetSender && targetSender.ws.readyState === WebSocket.OPEN) {
                         // 在offer消息中添加senderId信息
                         const offerWithSenderId = {
                             ...data,
                             senderId: senderId  // 添加senderId字段
                         };
-                        targetClient.ws.send(JSON.stringify(offerWithSenderId));
-                        console.log(`Offer已直接转发给目标客户端${data.targetClientId}，包含senderId: ${senderId}`);
+                        targetSender.ws.send(JSON.stringify(offerWithSenderId));
+                        console.log(`Offer已直接转发给目标发送端${data.targetClientId}，包含senderId: ${senderId}`);
                     } else {
-                        console.log(`目标客户端${data.targetClientId}不可用，无法转发offer`);
+                        console.log(`目标发送端${data.targetClientId}不可用，无法转发offer`);
                     }
                 }
             }
@@ -242,12 +203,12 @@ wss.on('connection', (ws, req) => {
                     // sender.offer = null;
                 }
                 
-                // 如果有targetClientId，直接转发给目标客户端
+                // 如果有targetClientId，直接转发给目标发送端
                 if (data.targetClientId) {
-                    const targetClient = allClients.get(data.targetClientId);
-                    if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
-                        targetClient.ws.send(message.toString());
-                        console.log(`Answer已直接转发给目标客户端${data.targetClientId}`);
+                    const targetSender = senders.get(data.targetClientId);
+                    if (targetSender && targetSender.ws.readyState === WebSocket.OPEN) {
+                        targetSender.ws.send(message.toString());
+                        console.log(`Answer已直接转发给目标发送端${data.targetClientId}`);
                     }
                 }
             }
@@ -269,6 +230,26 @@ wss.on('connection', (ws, req) => {
                 sendSenderList(ws);
             }
             
+            // 兼容客户端的 request_sender_list 消息
+            if (data.type === 'request_sender_list') {
+                console.log('收到 request_sender_list 消息，兼容处理');
+                
+                // 如果客户端还没有被标记为接收端，先标记为接收端
+                if (!clientRoles.has(ws)) {
+                    const receiverId = nextReceiverId++;
+                    clientRoles.set(ws, 'receiver');
+                    receivers.set(receiverId, {
+                        ws: ws,
+                        selectedSenderId: null,
+                        id: receiverId
+                    });
+                    ws.receiverId = receiverId;
+                    console.log(`客户端请求发送端列表，标记为接收端，ID: ${receiverId}`);
+                }
+                
+                sendSenderList(ws);
+            }
+            
             // 如果是选择发送端
             if (data.type === 'select_sender') {
                 const senderId = data.senderId;
@@ -285,6 +266,9 @@ wss.on('connection', (ws, req) => {
                         const offerJson = JSON.stringify(offerWithSenderId);
                         ws.send(offerJson);
                         console.log(`发送端${senderId}的offer已发送给接收端: ${offerJson.substring(0, 100)}...`);
+                        
+                        // 主动推送连接状态更新
+                        broadcastConnectionStatus(senderId, 'connected');
                     } else {
                         // 发送错误消息
                         console.log(`发送端${senderId}没有可用的offer`);
@@ -292,27 +276,55 @@ wss.on('connection', (ws, req) => {
                             type: 'error',
                             message: '选择的发送端不可用'
                         }));
+                        
+                        // 主动推送连接状态更新
+                        broadcastConnectionStatus(senderId, 'unavailable');
                     }
                 } else {
                     // 发送错误消息
                     console.log(`发送端${senderId}不存在`);
                     ws.send(JSON.stringify({
                         type: 'error',
-                        message: '发送端不存在'
+                        message: '选择的发送端不存在'
                     }));
+                    
+                    // 主动推送连接状态更新
+                    broadcastConnectionStatus(senderId, 'not_found');
+                }
+            }
+            
+            // 如果是ICE候选
+            if (data.type === 'ice') {
+                console.log(`收到ICE候选: ${data.candidate}`);
+                
+                // 转发给所有其他客户端
+                for (const client of clients) {
+                    if (client !== ws && client.readyState === WebSocket.OPEN) {
+                        client.send(message.toString());
+                    }
                 }
             }
             
             // 如果是心跳消息
             if (data.type === 'heartbeat') {
+                console.log(`收到心跳消息: ${data.timestamp || Date.now()}`);
+                
+                // 发送心跳响应
                 ws.send(JSON.stringify({
                     type: 'heartbeat_ack',
                     timestamp: Date.now()
                 }));
+                
+                // 更新发送端时间戳
+                if (ws.senderId && senders.has(ws.senderId)) {
+                    const sender = senders.get(ws.senderId);
+                    sender.lastHeartbeat = Date.now();
+                }
             }
             
             // 将其他消息转发给相应的客户端
-            if (data.type === 'candidate') {
+            if (data.type === 'candidate' || data.type === 'ice_candidate' || data.type === 'ice') {
+                console.log('candidate内容:', JSON.stringify(data));
                 const senderRole = clientRoles.get(ws);
                 console.log(`收到candidate消息，发送者角色: ${senderRole}`);
                 
@@ -348,53 +360,6 @@ wss.on('connection', (ws, req) => {
                     console.log(`未知角色的客户端发送candidate: ${senderRole}`);
                 }
             }
-            
-            // 新增：处理ice_candidate消息（与candidate相同）
-            if (data.type === 'ice_candidate') {
-                const senderRole = clientRoles.get(ws);
-                console.log(`收到ice_candidate消息，发送者角色: ${senderRole}`);
-                
-                if (senderRole === 'sender') {
-                    // 发送端发送的ice_candidate，转发给选择该发送端的接收端
-                    let forwardedToAny = false;
-                    for (const [receiverId, receiver] of receivers) {
-                        if (receiver.selectedSenderId === ws.senderId) {
-                            receiver.ws.send(message.toString());
-                            console.log(`发送端${ws.senderId}的ice_candidate已转发给接收端${receiverId}`);
-                            forwardedToAny = true;
-                            break;
-                        }
-                    }
-                    if (!forwardedToAny) {
-                        console.log(`未找到选择发送端${ws.senderId}的接收端，无法转发ice_candidate`);
-                    }
-                } else if (senderRole === 'receiver') {
-                    // 接收端发送的ice_candidate，转发给对应的发送端
-                    const receiver = receivers.get(ws.receiverId);
-                    if (receiver && receiver.selectedSenderId) {
-                        const sender = senders.get(receiver.selectedSenderId);
-                        if (sender && sender.ws.readyState === WebSocket.OPEN) {
-                            sender.ws.send(message.toString());
-                            console.log(`接收端${ws.receiverId}的ice_candidate已转发给发送端${receiver.selectedSenderId}`);
-                        } else {
-                            console.log(`发送端${receiver.selectedSenderId}不可用，无法转发ice_candidate`);
-                        }
-                    } else {
-                        console.log(`接收端${ws.receiverId}未选择发送端，无法转发ice_candidate`);
-                    }
-                } else {
-                    console.log(`未知角色的客户端发送ice_candidate: ${senderRole}`);
-                }
-                
-                // 如果有targetClientId，直接转发给目标客户端
-                if (data.targetClientId) {
-                    const targetClient = allClients.get(data.targetClientId);
-                    if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
-                        targetClient.ws.send(message.toString());
-                        console.log(`ICE候选已直接转发给目标客户端${data.targetClientId}`);
-                    }
-                }
-            }
         } catch (e) {
             console.error('处理消息时出错:', e);
         }
@@ -417,6 +382,7 @@ wss.on('connection', (ws, req) => {
             console.log(`发送端${ws.senderId}断开连接，已清除`);
             console.log(`清除后发送端数量: ${senders.size}`);
             broadcastSenderList();
+            broadcastConnectionStatus(ws.senderId, 'disconnected');
         }
         
         // 如果是接收者断开连接，清除相关信息
@@ -427,11 +393,6 @@ wss.on('connection', (ws, req) => {
         
         clientRoles.delete(ws);
         console.log(`断开后已连接客户端数量: ${clients.size}`);
-        
-        if (ws.clientId && allClients.has(ws.clientId)) {
-            allClients.delete(ws.clientId);
-            broadcastClientList();
-        }
     });
     
     // 处理错误
@@ -443,6 +404,7 @@ wss.on('connection', (ws, req) => {
         if (clientRoles.get(ws) === 'sender' && ws.senderId) {
             senders.delete(ws.senderId);
             broadcastSenderList();
+            broadcastConnectionStatus(ws.senderId, 'disconnected');
         }
         
         // 如果是接收者出错，清除相关信息
@@ -483,7 +445,7 @@ function sendSenderList(ws) {
 }
 
 /**
- * 广播发送端列表给所有接收端
+ * 广播发送端列表给所有客户端（包括发送端和接收端）
  */
 function broadcastSenderList() {
     const senderList = Array.from(senders.values()).map(sender => ({
@@ -493,14 +455,27 @@ function broadcastSenderList() {
         available: sender.offer !== null
     }));
     
+    // 向所有接收端广播
     for (const [receiverId, receiver] of receivers) {
-        receiver.ws.send(JSON.stringify({
-            type: 'sender_list_update',
-            senders: senderList
-        }));
+        if (receiver.ws.readyState === WebSocket.OPEN) {
+            receiver.ws.send(JSON.stringify({
+                type: 'sender_list',
+                senders: senderList
+            }));
+        }
     }
     
-    console.log(`发送端列表已广播给所有接收端，共${senderList.length}个发送端`);
+    // 向所有发送端广播（除了自己）
+    for (const [senderId, sender] of senders) {
+        if (sender.ws.readyState === WebSocket.OPEN) {
+            sender.ws.send(JSON.stringify({
+                type: 'sender_list',
+                senders: senderList
+            }));
+        }
+    }
+    
+    console.log(`发送端列表已广播给所有客户端，共${senderList.length}个发送端`);
 }
 
 // 定期清理过期的发送端（超过5分钟没有心跳的）
@@ -543,17 +518,30 @@ process.on('SIGINT', () => {
     });
 });
 
-// 新增：广播所有在线客户端列表
-function broadcastClientList() {
-    const clientList = Array.from(allClients.values()).map(client => ({
-        id: client.id,
-        name: client.name
-    }));
-    for (const client of allClients.values()) {
-        client.ws.send(JSON.stringify({
-            type: 'client_list',
-            clients: clientList
-        }));
+/**
+ * 广播连接状态更新给所有客户端
+ */
+function broadcastConnectionStatus(senderId, status) {
+    const statusMessage = {
+        type: 'connection_status',
+        senderId: senderId,
+        status: status,
+        timestamp: Date.now()
+    };
+    
+    // 广播给所有接收端
+    for (const receiver of receivers.values()) {
+        if (receiver.ws.readyState === WebSocket.OPEN) {
+            receiver.ws.send(JSON.stringify(statusMessage));
+        }
     }
-    console.log(`已广播所有在线客户端列表，共${clientList.length}个`);
+    
+    // 广播给所有发送端
+    for (const sender of senders.values()) {
+        if (sender.ws.readyState === WebSocket.OPEN) {
+            sender.ws.send(JSON.stringify(statusMessage));
+        }
+    }
+    
+    console.log(`连接状态已广播给所有客户端: 发送端${senderId} - ${status}`);
 } 

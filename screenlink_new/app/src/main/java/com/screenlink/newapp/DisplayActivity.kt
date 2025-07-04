@@ -2,13 +2,16 @@ package com.screenlink.newapp
 
 import android.app.Activity
 import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import org.webrtc.*
+import android.content.Context
 
 /*
  * 功能说明：
@@ -19,6 +22,21 @@ class DisplayActivity : Activity() {
     private lateinit var surfaceView: SurfaceViewRenderer
     private lateinit var backButton: Button
     private lateinit var mainLayout: LinearLayout
+    private var screenShareService: ScreenShareService? = null
+    private var isServiceBound = false
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: android.content.ComponentName?, service: android.os.IBinder?) {
+            val binder = service as? ScreenShareService.LocalBinder
+            screenShareService = binder?.getService()
+            isServiceBound = true
+            // 初始化视频显示
+            initializeVideoDisplay()
+        }
+        override fun onServiceDisconnected(name: android.content.ComponentName?) {
+            screenShareService = null
+            isServiceBound = false
+        }
+    }
     
     companion object {
         private const val TAG = "DisplayActivity"
@@ -26,13 +44,18 @@ class DisplayActivity : Activity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+        setContentView(R.layout.activity_display)
+        surfaceView = findViewById(R.id.remote_surface)
+
+        // 获取 Service 实例
+        screenShareService = MainActivity.screenShareServiceInstance
+
         // 创建全屏显示界面
         createDisplayUI()
         setContentView(mainLayout)
         
-        // 初始化视频显示
-        initializeVideoDisplay()
+        val intent = Intent(this, ScreenShareService::class.java)
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
     
     private fun createDisplayUI() {
@@ -72,7 +95,7 @@ class DisplayActivity : Activity() {
     private fun initializeVideoDisplay() {
         try {
             // 获取WebRTC管理器的EglBase
-            val eglBase = MainActivity.getWebRTCManager()?.getEglBase()
+            val eglBase = screenShareService?.eglBase
             
             eglBase?.let { egl ->
                 surfaceView.init(egl.eglBaseContext, null)
@@ -97,7 +120,7 @@ class DisplayActivity : Activity() {
     }
     
     private fun bindRemoteVideoTrack() {
-        val videoTrack = MainActivity.getWebRTCManager()?.getRemoteVideoTrack()
+        val videoTrack = screenShareService?.remoteVideoTrack
         Log.d(TAG, "尝试绑定远端视频轨道，videoTrack=${videoTrack != null}")
         if (videoTrack != null) {
             Log.d(TAG, "远端视频轨道详情: ID=${videoTrack.id()}, enabled=${videoTrack.enabled()}")
@@ -120,7 +143,13 @@ class DisplayActivity : Activity() {
     override fun onDestroy() {
         super.onDestroy()
         try {
+            // 重要：在销毁前移除视频轨道的绑定
+            screenShareService?.remoteVideoTrack?.removeSink(surfaceView)
             surfaceView.release()
+            if (isServiceBound) {
+                unbindService(serviceConnection)
+                isServiceBound = false
+            }
         } catch (e: Exception) {
             Log.e(TAG, "释放SurfaceView失败", e)
         }

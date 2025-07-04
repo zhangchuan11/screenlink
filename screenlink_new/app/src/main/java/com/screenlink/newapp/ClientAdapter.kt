@@ -9,7 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.screenlink.newapp.WebRTCManager.SenderInfo
+import com.screenlink.newapp.ScreenShareService.SenderInfo
+import com.screenlink.newapp.ScreenShareService.ClientInfo
 
 class ClientAdapter(
     private var senders: List<SenderInfo>,
@@ -28,7 +29,19 @@ class ClientAdapter(
     override fun getItemCount(): Int = senders.size
 
     fun updateSenders(newSenders: List<SenderInfo>) {
+        android.util.Log.d("ClientAdapter", "updateSenders 被调用，新发送端数量: ${newSenders.size}")
+        for (sender in newSenders) {
+            android.util.Log.d("ClientAdapter", "发送端: ID=${sender.id}, 名称=${sender.name}, 可用=${sender.available}")
+        }
         senders = newSenders
+        android.util.Log.d("ClientAdapter", "调用 notifyDataSetChanged")
+        notifyDataSetChanged()
+        android.util.Log.d("ClientAdapter", "notifyDataSetChanged 完成")
+    }
+
+    fun updateClients(clients: List<ClientInfo>) {
+        // 这里假设客户端和发送端共用同一个列表展示（如需分开可自行扩展）
+        senders = clients.map { SenderInfo(it.id, it.name, 0L, true) }
         notifyDataSetChanged()
     }
 
@@ -48,16 +61,22 @@ class ClientAdapter(
         private val textView: TextView = itemView.findViewById(android.R.id.text1)
         
         fun bind(sender: SenderInfo) {
-            val status = if (sender.available) "可用" else "不可用"
+            val status = if (sender.available) "🟢 可用" else "🔴 不可用"
             textView.text = "${sender.name} (ID: ${sender.id}) - $status"
+            
+            // 根据可用状态设置不同的背景色
+            if (sender.available) {
+                itemView.setBackgroundColor(android.graphics.Color.parseColor("#E8F5E8")) // 浅绿色背景
+                textView.setTextColor(android.graphics.Color.parseColor("#2E7D32")) // 深绿色文字
+            } else {
+                itemView.setBackgroundColor(android.graphics.Color.parseColor("#FFEBEE")) // 浅红色背景
+                textView.setTextColor(android.graphics.Color.parseColor("#C62828")) // 深红色文字
+            }
             
             itemView.setOnClickListener {
                 android.util.Log.d("ClientAdapter", "发送端项被点击: ${sender.name} (ID: ${sender.id})")
                 onSenderClickListener?.invoke(sender)
             }
-            
-            // 设置背景色以显示可点击状态
-            itemView.setBackgroundResource(android.R.drawable.list_selector_background)
         }
     }
 } 

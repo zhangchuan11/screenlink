@@ -3351,6 +3351,7 @@ id radio
 id ratio
 id rectangles
 id recyclerViewClients
+id remote_surface
 id reverseSawtooth
 id right
 id rightToLeft
@@ -3618,6 +3619,7 @@ layout abc_search_dropdown_item_icons_2line
 layout abc_search_view
 layout abc_select_dialog_material
 layout abc_tooltip
+layout activity_display
 layout activity_main
 layout custom_dialog
 layout design_bottom_navigation_item

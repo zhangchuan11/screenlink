@@ -29,7 +29,7 @@ class UIManager(private val context: Context) {
     private lateinit var startDisplayButton: Button
     
     // 客户端列表相关
-    private var clientList = mutableListOf<WebRTCManager.ClientInfo>()
+    private var clientList = mutableListOf<ScreenShareService.ClientInfo>()
     private lateinit var clientAdapter: ClientListAdapter
     
     // 回调接口
@@ -37,14 +37,14 @@ class UIManager(private val context: Context) {
         fun onModeToggle()
         fun onConnectionToggle()
         fun onAppIconToggle()
-        fun onClientSelected(client: WebRTCManager.ClientInfo)
+        fun onClientSelected(client: ScreenShareService.ClientInfo)
         fun onStartDisplay()
     }
     
     private var listener: UIListener? = null
     
     companion object {
-        private const val DEFAULT_SIGNALING_SERVER = "192.168.1.3:6060"
+        private const val DEFAULT_SIGNALING_SERVER = "192.168.1.2:6060"
     }
     
     /**
@@ -215,7 +215,7 @@ class UIManager(private val context: Context) {
     /**
      * 更新客户端列表
      */
-    fun updateClientList(clients: List<WebRTCManager.ClientInfo>) {
+    fun updateClientList(clients: List<ScreenShareService.ClientInfo>) {
         clientList.clear()
         clientList.addAll(clients)
         clientAdapter.notifyDataSetChanged()
@@ -242,10 +242,10 @@ class UIManager(private val context: Context) {
 // 客户端列表适配器
 class ClientListAdapter(
     private val context: Context,
-    private val clientList: List<WebRTCManager.ClientInfo>
+    private val clientList: List<ScreenShareService.ClientInfo>
 ) : BaseAdapter() {
     override fun getCount(): Int = clientList.size
-    override fun getItem(position: Int): WebRTCManager.ClientInfo = clientList[position]
+    override fun getItem(position: Int): ScreenShareService.ClientInfo = clientList[position]
     override fun getItemId(position: Int): Long = position.toLong()
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
         val view = convertView ?: LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_1, parent, false)
