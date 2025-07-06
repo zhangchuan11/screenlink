@@ -112,6 +112,50 @@ class MainActivity : Activity() {
                     runOnUiThread {
                         Toast.makeText(this@MainActivity, error, Toast.LENGTH_SHORT).show()
                         Log.d(TAG, "弹窗: $error")
+                        
+                        // 检查是否是权限相关错误
+                        if (error.contains("需要重新获取屏幕录制权限") || error.contains("MediaProjection数据无效")) {
+                            Log.d(TAG, "检测到权限问题，准备重新请求权限")
+                            // 重新启用发送端按钮
+                            btnStartSender.isEnabled = true
+                            findViewById<TextView>(R.id.tvStatus)?.text = "发送端模式 - 需要重新获取权限"
+                        }
+                    }
+                }
+            })
+
+            // 设置屏幕采集监听器
+            screenShareService?.setScreenCaptureListener(object : ScreenShareService.ScreenCaptureListener {
+                override fun onScreenCaptureStarted() {
+                    runOnUiThread {
+                        Log.d(TAG, "屏幕采集已启动")
+                        Toast.makeText(this@MainActivity, "屏幕采集已启动", Toast.LENGTH_SHORT).show()
+                        findViewById<TextView>(R.id.tvStatus)?.text = "发送端模式 - 屏幕采集已启动"
+                        btnStartSender.isEnabled = true // 重新启用按钮
+                    }
+                }
+                
+                override fun onScreenCaptureStopped() {
+                    runOnUiThread {
+                        Log.d(TAG, "屏幕采集已停止")
+                        Toast.makeText(this@MainActivity, "屏幕采集已停止", Toast.LENGTH_SHORT).show()
+                        findViewById<TextView>(R.id.tvStatus)?.text = "发送端模式 - 屏幕采集已停止"
+                        btnStartSender.isEnabled = true // 重新启用按钮
+                    }
+                }
+                
+                override fun onScreenCaptureError(error: String) {
+                    runOnUiThread {
+                        Log.e(TAG, "屏幕采集错误: $error")
+                        Toast.makeText(this@MainActivity, "屏幕采集错误: $error", Toast.LENGTH_LONG).show()
+                        findViewById<TextView>(R.id.tvStatus)?.text = "发送端模式 - 采集错误: $error"
+                        btnStartSender.isEnabled = true // 重新启用按钮
+                        
+                        // 如果是权限问题，提供重新请求的选项
+                        if (error.contains("需要重新获取屏幕录制权限") || error.contains("MediaProjection数据无效")) {
+                            Log.d(TAG, "检测到权限问题，准备重新请求权限")
+                            // 可以在这里添加一个对话框让用户选择是否重新请求权限
+                        }
                     }
                 }
             })
@@ -130,6 +174,8 @@ class MainActivity : Activity() {
     
     // 添加按钮成员变量
     private lateinit var btnStartSender: Button
+    private lateinit var btnToggleIcon: Button
+    private lateinit var btnShowIcon: Button
     
     companion object {
         private const val TAG = "MainActivity"
@@ -156,9 +202,11 @@ class MainActivity : Activity() {
         val tvSelectedClient = findViewById<TextView>(R.id.tvSelectedClient)
         val btnConnect = findViewById<Button>(R.id.btnConnect)
         btnStartSender = findViewById<Button>(R.id.btnStartSender)
+        btnToggleIcon = findViewById<Button>(R.id.btnToggleIcon)
+        btnShowIcon = findViewById<Button>(R.id.btnShowIcon)
         val recyclerViewClients = findViewById<RecyclerView>(R.id.recyclerViewClients)
         
-        Log.d(TAG, "UI组件初始化完成: tvSelectedClient=${tvSelectedClient != null}, btnConnect=${btnConnect != null}, btnStartSender=${btnStartSender != null}, recyclerViewClients=${recyclerViewClients != null}")
+        Log.d(TAG, "UI组件初始化完成: tvSelectedClient=${tvSelectedClient != null}, btnConnect=${btnConnect != null}, btnStartSender=${btnStartSender != null}, btnToggleIcon=${btnToggleIcon != null}, btnShowIcon=${btnShowIcon != null}, recyclerViewClients=${recyclerViewClients != null}")
 
         // 获取状态文本视图
         val tvStatus = findViewById<TextView>(R.id.tvStatus)
@@ -223,6 +271,26 @@ class MainActivity : Activity() {
             // Handler().postDelayed({ btnStartSender.isEnabled = true }, 2000) // 建议在采集真正开始后再启用
         }
         
+        // 切换应用图标按钮
+        btnToggleIcon.setOnClickListener {
+            Log.d(TAG, "切换应用图标按钮被点击")
+            val isHidden = AppIconUtils.toggleAppIconVisibility(this@MainActivity)
+            updateIconStatus()
+            val message = if (isHidden) "应用图标已隐藏" else "应用图标已显示"
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "弹窗: $message")
+        }
+        
+        // 显示应用图标按钮
+        btnShowIcon.setOnClickListener {
+            Log.d(TAG, "显示应用图标按钮被点击")
+            val success = AppIconUtils.showAppIcon(this@MainActivity, autoLaunch = false)
+            updateIconStatus()
+            val message = if (success) "应用图标已恢复显示" else "应用图标已经是显示状态"
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "弹窗: $message")
+        }
+        
         // 测试UI响应
         Log.d(TAG, "MainActivity onCreate 完成，显示测试Toast")
         Toast.makeText(this, "应用已启动，UI测试正常", Toast.LENGTH_SHORT).show()
@@ -263,37 +331,36 @@ class MainActivity : Activity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        
         Log.d(TAG, "onActivityResult: requestCode=$requestCode, resultCode=$resultCode, data=${data != null}")
-        if (requestCode == MEDIA_PROJECTION_REQUEST_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            val granted = screenShareService?.handlePermissionResult(requestCode, resultCode, data) == true
-            if (granted) {
-                // 设置发送端模式
-                screenShareService?.let { service ->
-                    // 通过反射或其他方式设置发送端模式
-                    try {
-                        val isActingAsSenderField = service.javaClass.getDeclaredField("isActingAsSender")
-                        isActingAsSenderField.isAccessible = true
-                        isActingAsSenderField.set(service, true)
-                        Log.d(TAG, "已设置发送端模式")
-                    } catch (e: Exception) {
-                        Log.d(TAG, "设置发送端模式失败: ${e.message}")
-                    }
-                }
+        
+        if (requestCode == MEDIA_PROJECTION_REQUEST_CODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                Log.d(TAG, "已设置发送端模式")
                 
-                screenShareService?.startScreenCapture(screenShareService?.factory, screenShareService?.eglBase)
-                Toast.makeText(this, "录屏授权成功，已自动启动投屏服务", Toast.LENGTH_SHORT).show()
+                // 将权限数据传递给服务
+                screenShareService?.handlePermissionResult(requestCode, resultCode, data)
+                
+                // 启动屏幕采集
+                screenShareService?.startScreenCapture(
+                    screenShareService?.factory,
+                    screenShareService?.eglBase
+                )
+                
+                Toast.makeText(this, "录屏授权成功，已自动启动投屏服务", Toast.LENGTH_LONG).show()
                 Log.d(TAG, "弹窗: 录屏授权成功，已自动启动投屏服务")
-                btnStartSender.isEnabled = true // 采集启动后再允许点击
+                
+                // 更新UI状态
+                findViewById<TextView>(R.id.tvStatus)?.text = "发送端模式 - 屏幕采集已启动"
+                
             } else {
-                Toast.makeText(this, "录屏授权失败，请在系统设置中允许录屏权限", Toast.LENGTH_LONG).show()
-                Log.d(TAG, "弹窗: 录屏授权失败，请在系统设置中允许录屏权限")
-                btnStartSender.isEnabled = true
+                Log.d(TAG, "录屏权限被拒绝")
+                Toast.makeText(this, "录屏权限被拒绝，无法启动投屏服务", Toast.LENGTH_LONG).show()
+                Log.d(TAG, "弹窗: 录屏权限被拒绝，无法启动投屏服务")
+                
+                // 更新UI状态
+                findViewById<TextView>(R.id.tvStatus)?.text = "发送端模式 - 权限被拒绝"
             }
-        } else {
-            Toast.makeText(this, "录屏授权失败，请在系统设置中允许录屏权限", Toast.LENGTH_LONG).show()
-            Log.d(TAG, "弹窗: 录屏授权失败，请在系统设置中允许录屏权限")
-            hasRequestedProjection = false
-            btnStartSender.isEnabled = true
         }
     }
 

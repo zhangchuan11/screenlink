@@ -44,15 +44,32 @@ class ScreenShareService : Service() {
             if (resultCode == android.app.Activity.RESULT_OK && data != null) {
                 this.resultCode = resultCode
                 this.resultData = data
+                android.util.Log.d("ScreenShareService", "✅ 屏幕录制权限获取成功")
                 return true
             } else {
                 screenCaptureListener?.onScreenCaptureError("屏幕录制权限被拒绝")
                 this.resultCode = 0
                 this.resultData = null
+                android.util.Log.e("ScreenShareService", "❌ 屏幕录制权限被拒绝")
                 return false
             }
         }
         return false
+    }
+
+    // 添加检查MediaProjection权限状态的方法
+    fun hasValidMediaProjectionPermission(): Boolean {
+        return resultCode == android.app.Activity.RESULT_OK && resultData != null
+    }
+
+    // 添加重新请求权限的方法
+    fun reRequestScreenCapturePermission(activity: android.app.Activity) {
+        android.util.Log.d("ScreenShareService", "重新请求屏幕录制权限")
+        // 清理旧的权限数据
+        resultCode = 0
+        resultData = null
+        // 重新请求权限
+        requestScreenCapturePermission(activity)
     }
 
     fun startScreenCapture(factory: org.webrtc.PeerConnectionFactory?, eglBase: org.webrtc.EglBase?) {
@@ -60,6 +77,7 @@ class ScreenShareService : Service() {
         android.util.Log.d("ScreenShareService", "[诊断] 当前状态: isScreenCapturing=$isScreenCapturing, isConnected=$isConnected, ws=${ws != null}")
         android.util.Log.d("ScreenShareService", "[诊断] 参数检查: factory=${factory != null}, eglBase=${eglBase != null}")
         android.util.Log.d("ScreenShareService", "[诊断] 当前线程: ${Thread.currentThread().name}")
+        android.util.Log.d("ScreenShareService", "[诊断] MediaProjection状态: resultCode=$resultCode, resultData=${resultData != null}")
         
         if (isScreenCapturing) {
             android.util.Log.e("ScreenShareService", "采集已在进行中，禁止重复启动")
@@ -67,8 +85,16 @@ class ScreenShareService : Service() {
         }
         
         // 检查参数
-        if (resultCode != android.app.Activity.RESULT_OK || resultData == null || factory == null || eglBase == null) {
+        if (resultCode != android.app.Activity.RESULT_OK || resultData == null) {
             android.util.Log.e("ScreenShareService", "MediaProjection数据无效，无法开始屏幕捕获")
+            android.util.Log.e("ScreenShareService", "resultCode=$resultCode, resultData=${resultData != null}")
+            // 通知UI层需要重新请求权限
+            screenCaptureListener?.onScreenCaptureError("需要重新获取屏幕录制权限")
+            return
+        }
+        
+        if (factory == null || eglBase == null) {
+            android.util.Log.e("ScreenShareService", "WebRTC参数无效，无法开始屏幕捕获")
             return
         }
         
@@ -87,16 +113,49 @@ class ScreenShareService : Service() {
             if (videoCapturer == null) {
                 android.util.Log.e("ScreenShareService", "无法创建视频采集器")
                 isScreenCapturing = false
+                screenCaptureListener?.onScreenCaptureError("无法创建屏幕采集器")
                 return
             }
             
             videoSource = factory.createVideoSource(false)
+            
+            // 创建自定义的capturerObserver来监控帧采集
+            val customCapturerObserver = object : org.webrtc.CapturerObserver {
+                private var frameCount = 0
+                
+                override fun onCapturerStarted(success: Boolean) {
+                    android.util.Log.d("ScreenShareService", "采集器启动状态: $success")
+                    if (success) {
+                        screenCaptureListener?.onScreenCaptureStarted()
+                    } else {
+                        screenCaptureListener?.onScreenCaptureError("屏幕采集启动失败")
+                    }
+                }
+                
+                override fun onCapturerStopped() {
+                    android.util.Log.d("ScreenShareService", "采集器已停止")
+                }
+                
+                override fun onFrameCaptured(frame: org.webrtc.VideoFrame?) {
+                    frame?.let {
+                        frameCount++
+                        if (frameCount % 30 == 0) { // 每30帧记录一次，避免日志过多
+                            android.util.Log.d("ScreenShareService", "✅ 采集到视频帧: ${it.buffer.width}x${it.buffer.height}, 时间戳: ${it.timestampNs}, 总帧数: $frameCount")
+                        }
+                        // 转发给原始的capturerObserver
+                        videoSource?.capturerObserver?.onFrameCaptured(it)
+                    } ?: run {
+                        android.util.Log.w("ScreenShareService", "⚠️ 采集到空帧")
+                    }
+                }
+            }
+            
             videoCapturer?.initialize(
                 org.webrtc.SurfaceTextureHelper.create("ScreenCaptureThread", eglBase.eglBaseContext),
                 applicationContext,
-                videoSource?.capturerObserver
+                customCapturerObserver
             )
-            videoCapturer?.startCapture(1280, 720, 30)
+            videoCapturer?.startCapture(640, 480, 15)
             isScreenCaptureActive = true
             videoTrack = factory.createVideoTrack("ARDAMSv0", videoSource)
             
@@ -115,6 +174,15 @@ class ScreenShareService : Service() {
             android.util.Log.d("ScreenShareService", "ICE 连接状态: ${peerConnection?.iceConnectionState()}")
             android.util.Log.d("ScreenShareService", "信令状态: ${peerConnection?.signalingState()}")
             
+            // 添加视频轨道详细状态检查
+            videoTrack?.let { track ->
+                android.util.Log.d("ScreenShareService", "✅ 视频轨道详细信息:")
+                android.util.Log.d("ScreenShareService", "   - ID: ${track.id()}")
+                android.util.Log.d("ScreenShareService", "   - 启用状态: ${track.enabled()}")
+                android.util.Log.d("ScreenShareService", "   - 轨道类型: ${track.kind()}")
+                android.util.Log.d("ScreenShareService", "   - 轨道状态: ${track.state()}")
+            }
+            
             android.util.Log.d("ScreenShareService", "屏幕采集和推流已启动")
             
             // 采集成功后发送发送端注册消息
@@ -132,16 +200,6 @@ class ScreenShareService : Service() {
                 android.util.Log.e("ScreenShareService", "发送注册消息失败", e)
             }
             
-            // 采集成功后立即清空，强制下次必须重新授权
-            resultData = null
-            resultCode = 0
-            
-            videoTrack?.addSink(object : org.webrtc.VideoSink {
-                override fun onFrame(frame: org.webrtc.VideoFrame) {
-                    // android.util.Log.d("ScreenShareService", "采集端 onFrame: ${frame.buffer.width}x${frame.buffer.height}")
-                }
-            })
-            
             // 采集启动成功后，如果是发送端模式，立即创建offer
             if (isActingAsSender) {
                 android.util.Log.d("ScreenShareService", "发送端模式，采集启动后立即创建offer")
@@ -152,6 +210,7 @@ class ScreenShareService : Service() {
             
         } catch (e: Exception) {
             android.util.Log.e("ScreenShareService", "启动屏幕采集失败", e)
+            screenCaptureListener?.onScreenCaptureError("启动屏幕采集失败: ${e.message}")
             stopScreenCapture()
         }
     }
@@ -242,13 +301,12 @@ class ScreenShareService : Service() {
         android.util.Log.d("ScreenShareService", "[诊断] createScreenCapturer 被调用")
         android.util.Log.d("ScreenShareService", "[诊断] 当前线程: ${Thread.currentThread().name}")
         android.util.Log.d("ScreenShareService", "[诊断] WebSocket状态: isConnected=$isConnected, ws=${ws != null}")
+        android.util.Log.d("ScreenShareService", "[诊断] MediaProjection参数: resultCode=$resultCode, resultData=${resultData != null}")
         
         try {
             if (resultData == null || resultCode != android.app.Activity.RESULT_OK) {
                 android.util.Log.e("ScreenShareService", "MediaProjection数据无效")
-                // 失败时清空
-                resultData = null
-                resultCode = 0
+                android.util.Log.e("ScreenShareService", "resultCode=$resultCode, resultData=${resultData != null}")
                 return null
             }
             
@@ -263,9 +321,6 @@ class ScreenShareService : Service() {
             mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, resultData!!)
             if (mediaProjection == null) {
                 android.util.Log.e("ScreenShareService", "获取MediaProjection失败")
-                // 失败时清空
-                resultData = null
-                resultCode = 0
                 return null
             }
             
@@ -280,9 +335,6 @@ class ScreenShareService : Service() {
             })
         } catch (e: Exception) {
             android.util.Log.e("ScreenShareService", "创建屏幕捕获器失败", e)
-            // 失败时清空
-            resultData = null
-            resultCode = 0
             return null
         }
     }
@@ -315,6 +367,17 @@ class ScreenShareService : Service() {
     private var reconnectAttempts = 0
     private val MAX_RECONNECT_ATTEMPTS = 5
     private val RECONNECT_DELAY = 5000L // 5秒
+    private var lastConnectionAttempt = 0L
+    private val CONNECTION_ATTEMPT_INTERVAL = 10000L // 10秒间隔
+    
+    // 添加WebRTC连接状态管理
+    private var isWebRTCConnecting = false
+    private var lastOfferTimestamp = 0L
+    private val OFFER_TIMEOUT = 30000L // 30秒超时
+    private var iceConnectionTimeoutHandler: android.os.Handler? = null
+    private val ICE_CONNECTION_TIMEOUT = 30000L // 增加到30秒ICE连接超时
+    private var iceConnectionRetryCount = 0
+    private val MAX_ICE_RETRY_COUNT = 3
 
     // WebRTC回调接口
     interface WebRTCListener {
@@ -362,6 +425,14 @@ class ScreenShareService : Service() {
         try {
             android.util.Log.d("ScreenShareService", "[日志追踪] connectToSignalingServer 被调用, address=$address")
             
+            // 检查连接间隔，防止频繁连接
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastConnectionAttempt < CONNECTION_ATTEMPT_INTERVAL) {
+                android.util.Log.d("ScreenShareService", "连接尝试过于频繁，跳过本次连接")
+                return
+            }
+            lastConnectionAttempt = currentTime
+            
             // 防止重复连接
             if (isConnecting) {
                 android.util.Log.d("ScreenShareService", "正在连接中，跳过重复连接请求")
@@ -379,6 +450,15 @@ class ScreenShareService : Service() {
             serverAddress = address
             isConnecting = true
             android.util.Log.d("ScreenShareService", "开始连接到信令服务器: $address")
+            
+            // 验证地址格式
+            if (!address.contains(":")) {
+                android.util.Log.e("ScreenShareService", "服务器地址格式错误: $address")
+                isConnecting = false
+                webRTCListener?.onError("服务器地址格式错误: $address")
+                return
+            }
+            
             val uri = java.net.URI("ws://$serverAddress")
             ws = object : org.java_websocket.client.WebSocketClient(uri) {
                 override fun onOpen(handshakedata: org.java_websocket.handshake.ServerHandshake?) {
@@ -440,10 +520,13 @@ class ScreenShareService : Service() {
                         reconnectAttempts++
                         android.util.Log.d("ScreenShareService", "尝试自动重连信令服务器... (第${reconnectAttempts}次)")
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            // 重置连接状态
+                            isConnecting = false
                             connectToSignalingServer(serverAddress)
-                        }, RECONNECT_DELAY)
+                        }, RECONNECT_DELAY * reconnectAttempts) // 递增延迟
                     } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
                         android.util.Log.w("ScreenShareService", "重连次数已达上限($MAX_RECONNECT_ATTEMPTS)，停止自动重连")
+                        webRTCListener?.onError("连接失败，请检查服务器地址和网络状态")
                     }
                 }
                 override fun onError(ex: Exception?) {
@@ -452,36 +535,74 @@ class ScreenShareService : Service() {
                     isConnecting = false
                     webRTCListener?.onConnectionStateChanged(false)
                     
+                    // 分析错误类型
+                    when (ex) {
+                        is java.net.ConnectException -> {
+                            android.util.Log.e("ScreenShareService", "连接被拒绝，请检查服务器是否运行")
+                            webRTCListener?.onError("无法连接到服务器，请检查服务器地址和网络状态")
+                        }
+                        is java.net.SocketTimeoutException -> {
+                            android.util.Log.e("ScreenShareService", "连接超时")
+                            webRTCListener?.onError("连接超时，请检查网络状态")
+                        }
+                        is java.net.UnknownHostException -> {
+                            android.util.Log.e("ScreenShareService", "未知主机")
+                            webRTCListener?.onError("服务器地址无效")
+                        }
+                        else -> {
+                            android.util.Log.e("ScreenShareService", "WebSocket连接错误: ${ex?.message}")
+                            webRTCListener?.onError("连接错误: ${ex?.message}")
+                        }
+                    }
+                    
                     // 智能重连：只有在重连次数未超限时才重连
                     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttempts++
                         android.util.Log.d("ScreenShareService", "WebSocket错误，尝试自动重连信令服务器... (第${reconnectAttempts}次)")
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            // 重置连接状态
+                            isConnecting = false
                             connectToSignalingServer(serverAddress)
-                        }, RECONNECT_DELAY)
+                        }, RECONNECT_DELAY * reconnectAttempts) // 递增延迟
                     } else {
                         android.util.Log.w("ScreenShareService", "重连次数已达上限($MAX_RECONNECT_ATTEMPTS)，停止自动重连")
                     }
                 }
             }
+            
+            // 设置连接超时
+            ws?.setConnectionLostTimeout(10000) // 10秒超时
+            
             android.util.Log.d("ScreenShareService", "[日志追踪] ws.connect() 即将执行")
             ws?.connect()
             android.util.Log.d("ScreenShareService", "[日志追踪] ws.connect() 已调用")
         } catch (e: Exception) {
             android.util.Log.e("ScreenShareService", "[日志追踪] 连接信令服务器失败", e)
             isConnecting = false
+            webRTCListener?.onError("连接失败: ${e.message}")
         }
     }
 
     fun disconnectFromSignalingServer() {
         try {
             android.util.Log.d("ScreenShareService", "开始断开信令服务器连接")
+            
+            // 取消ICE连接超时处理
+            iceConnectionTimeoutHandler?.removeCallbacksAndMessages(null)
+            iceConnectionTimeoutHandler = null
+            
             stopHeartbeat()
             ws?.close()
             ws = null
             isConnected = false
             isConnecting = false
             reconnectAttempts = 0 // 主动断开时重置重连次数
+            lastConnectionAttempt = 0L // 重置连接尝试时间戳
+            
+            // 清理WebRTC连接状态
+            isWebRTCConnecting = false
+            lastOfferTimestamp = 0L
+            
             android.util.Log.d("ScreenShareService", "已断开信令服务器连接")
         } catch (e: Exception) {
             android.util.Log.e("ScreenShareService", "断开信令服务器连接失败", e)
@@ -532,6 +653,11 @@ class ScreenShareService : Service() {
                         }
                         override fun onSetFailure(p0: String?) {
                             android.util.Log.e("ScreenShareService", "设置远程描述失败: $p0")
+                            // 如果是状态错误，尝试重置连接
+                            if (p0?.contains("wrong state") == true) {
+                                android.util.Log.w("ScreenShareService", "检测到状态错误，可能需要重置连接")
+                            }
+                            isWebRTCConnecting = false // 设置失败，重置状态
                         }
                     }, sessionDescription)
                     
@@ -539,8 +665,28 @@ class ScreenShareService : Service() {
                 }
                 "answer" -> {
                     val sdp = json.optString("sdp")
-                    setRemoteDescription(sdp, org.webrtc.SessionDescription.Type.ANSWER)
-                    webRTCListener?.onAnswerReceived(sdp)
+                    android.util.Log.d("ScreenShareService", "收到 answer 消息，当前信令状态: ${peerConnection?.signalingState()}")
+                    
+                    // 检查当前状态是否适合设置answer
+                    val currentState = peerConnection?.signalingState()
+                    when (currentState) {
+                        org.webrtc.PeerConnection.SignalingState.HAVE_LOCAL_OFFER -> {
+                            android.util.Log.d("ScreenShareService", "状态正确，可以设置answer")
+                            setRemoteDescription(sdp, org.webrtc.SessionDescription.Type.ANSWER)
+                            webRTCListener?.onAnswerReceived(sdp)
+                            // 设置成功后重置连接状态
+                            isWebRTCConnecting = false
+                        }
+                        org.webrtc.PeerConnection.SignalingState.STABLE -> {
+                            android.util.Log.w("ScreenShareService", "PeerConnection已处于稳定状态，跳过answer设置")
+                            // 不调用setRemoteDescription，避免状态错误
+                            isWebRTCConnecting = false
+                        }
+                        else -> {
+                            android.util.Log.w("ScreenShareService", "当前状态不适合设置answer: $currentState")
+                            isWebRTCConnecting = false
+                        }
+                    }
                 }
                 "ice" -> {
                     val candidate = json.optString("candidate")
@@ -628,13 +774,22 @@ class ScreenShareService : Service() {
                     // 可以在这里添加注册成功的回调
                     webRTCListener?.onError("发送端注册成功: $name (ID: $senderId)")
                     
-                    // 注册成功后自动创建并发送 offer
+                    // 注册成功后重置WebRTC连接状态，然后创建offer
                     try {
-                        android.util.Log.d("ScreenShareService", "发送端注册成功，开始创建 offer")
+                        android.util.Log.d("ScreenShareService", "发送端注册成功，重置连接状态并创建offer")
+                        isWebRTCConnecting = false // 重置连接状态
+                        lastOfferTimestamp = 0L // 重置时间戳
+                        
                         // 延迟一点时间确保注册完成
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            createOffer()
-                        }, 500)
+                            // 检查屏幕采集状态
+                            if (isScreenCaptureActive) {
+                                android.util.Log.d("ScreenShareService", "屏幕采集已启动，创建offer")
+                                createOffer()
+                            } else {
+                                android.util.Log.d("ScreenShareService", "屏幕采集未启动，跳过offer创建")
+                            }
+                        }, 1000) // 延迟1秒确保注册完成
                     } catch (e: Exception) {
                         android.util.Log.e("ScreenShareService", "自动创建 offer 失败", e)
                     }
@@ -739,15 +894,51 @@ class ScreenShareService : Service() {
 
     fun createPeerConnection() : org.webrtc.PeerConnection? {
         try {
-            // 配置STUN服务器
+            // 配置STUN和TURN服务器 - 使用更可靠的服务器
             val iceServers = listOf(
                 org.webrtc.PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-                org.webrtc.PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
+                org.webrtc.PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+                org.webrtc.PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
+                org.webrtc.PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
+                org.webrtc.PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer(),
+                // 使用更可靠的TURN服务器
+                org.webrtc.PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+                    .setUsername("openrelayproject")
+                    .setPassword("openrelayproject")
+                    .createIceServer(),
+                org.webrtc.PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443")
+                    .setUsername("openrelayproject")
+                    .setPassword("openrelayproject")
+                    .createIceServer(),
+                org.webrtc.PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443?transport=tcp")
+                    .setUsername("openrelayproject")
+                    .setPassword("openrelayproject")
+                    .createIceServer(),
+                // 添加更多TURN服务器作为备用
+                org.webrtc.PeerConnection.IceServer.builder("turn:global.turn.twilio.com:3478?transport=udp")
+                    .setUsername("your_username")
+                    .setPassword("your_password")
+                    .createIceServer(),
+                org.webrtc.PeerConnection.IceServer.builder("turn:global.turn.twilio.com:3478?transport=tcp")
+                    .setUsername("your_username")
+                    .setPassword("your_password")
+                    .createIceServer()
             )
             val rtcConfig = org.webrtc.PeerConnection.RTCConfiguration(iceServers).apply {
                 iceTransportsType = org.webrtc.PeerConnection.IceTransportsType.ALL
                 rtcpMuxPolicy = org.webrtc.PeerConnection.RtcpMuxPolicy.REQUIRE
                 sdpSemantics = org.webrtc.PeerConnection.SdpSemantics.UNIFIED_PLAN
+                // 添加更多ICE配置选项
+                iceCandidatePoolSize = 10
+                bundlePolicy = org.webrtc.PeerConnection.BundlePolicy.MAXBUNDLE
+                rtcpMuxPolicy = org.webrtc.PeerConnection.RtcpMuxPolicy.REQUIRE
+                // 添加ICE连接超时配置
+                iceConnectionReceivingTimeout = 10000 // 10秒超时
+                iceBackupCandidatePairPingInterval = 2000 // 2秒间隔
+                // 设置更激进的ICE配置
+                iceServers.forEach { server ->
+                    android.util.Log.d("ScreenShareService", "ICE服务器: ${server.urls.joinToString()}")
+                }
             }
             peerConnection = factory?.createPeerConnection(rtcConfig, object : org.webrtc.PeerConnection.Observer {
                 override fun onIceCandidate(candidate: org.webrtc.IceCandidate?) {
@@ -778,21 +969,102 @@ class ScreenShareService : Service() {
                 }
                 override fun onIceConnectionChange(state: org.webrtc.PeerConnection.IceConnectionState?) {
                     android.util.Log.d("ScreenShareService", "ICE 连接状态变化: $state")
+                    
+                    // 取消之前的超时处理
+                    iceConnectionTimeoutHandler?.removeCallbacksAndMessages(null)
+                    
                     when (state) {
                         org.webrtc.PeerConnection.IceConnectionState.CONNECTED -> {
                             android.util.Log.d("ScreenShareService", "✅ ICE连接已建立，视频流应该开始传输")
+                            android.util.Log.d("ScreenShareService", "✅ 发送端视频轨道状态: ID=${videoTrack?.id()}, enabled=${videoTrack?.enabled()}")
+                            android.util.Log.d("ScreenShareService", "✅ 接收端视频轨道状态: ID=${remoteVideoTrack?.id()}, enabled=${remoteVideoTrack?.enabled()}")
+                            isWebRTCConnecting = false // 连接成功，重置状态
+                            iceConnectionRetryCount = 0 // 重置重试计数
+                            webRTCListener?.onError("ICE连接已建立")
                         }
                         org.webrtc.PeerConnection.IceConnectionState.FAILED -> {
                             android.util.Log.d("ScreenShareService", "❌ ICE连接失败，无法建立P2P连接")
+                            isWebRTCConnecting = false // 连接失败，重置状态
+                            webRTCListener?.onError("ICE连接失败，正在重试...")
+                            
+                            // 尝试重新创建PeerConnection并重试
+                            if (iceConnectionRetryCount < MAX_ICE_RETRY_COUNT) {
+                                iceConnectionRetryCount++
+                                android.util.Log.d("ScreenShareService", "🔄 尝试重新建立ICE连接... (第${iceConnectionRetryCount}次)")
+                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    try {
+                                        // 清理旧的PeerConnection
+                                        peerConnection?.dispose()
+                                        peerConnection = null
+                                        
+                                        // 重新创建PeerConnection
+                                        createPeerConnection()
+                                        
+                                        // 如果屏幕采集还在进行，重新添加视频轨道
+                                        if (isScreenCaptureActive && videoTrack != null) {
+                                            addVideoTrackToPeerConnection(videoTrack)
+                                        }
+                                        
+                                        // 重新创建offer
+                                        createOffer()
+                                        
+                                        // 通知用户重试状态
+                                        webRTCListener?.onError("ICE连接失败，正在重试... (第${iceConnectionRetryCount}次)")
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("ScreenShareService", "重新建立ICE连接失败", e)
+                                        webRTCListener?.onError("重试失败: ${e.message}")
+                                    }
+                                }, 3000) // 3秒后重试
+                            } else {
+                                android.util.Log.e("ScreenShareService", "ICE连接重试次数已达上限，停止重试")
+                                webRTCListener?.onError("ICE连接失败，请检查网络环境")
+                                iceConnectionRetryCount = 0 // 重置计数
+                            }
                         }
                         org.webrtc.PeerConnection.IceConnectionState.DISCONNECTED -> {
                             android.util.Log.d("ScreenShareService", "⚠️ ICE连接断开")
+                            isWebRTCConnecting = false // 连接断开，重置状态
+                            webRTCListener?.onError("ICE连接断开")
                         }
                         org.webrtc.PeerConnection.IceConnectionState.CHECKING -> {
                             android.util.Log.d("ScreenShareService", "🔄 ICE连接检查中...")
+                            
+                            // 启动ICE连接超时监控
+                            iceConnectionTimeoutHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                            iceConnectionTimeoutHandler?.postDelayed({
+                                if (peerConnection?.iceConnectionState() == org.webrtc.PeerConnection.IceConnectionState.CHECKING) {
+                                    android.util.Log.w("ScreenShareService", "⚠️ ICE连接检查超时，尝试强制重连")
+                                    webRTCListener?.onError("ICE连接超时，正在重试...")
+                                    
+                                    // 尝试重新创建PeerConnection
+                                    if (iceConnectionRetryCount < MAX_ICE_RETRY_COUNT) {
+                                        iceConnectionRetryCount++
+                                        try {
+                                            peerConnection?.dispose()
+                                            peerConnection = null
+                                            createPeerConnection()
+                                            if (isScreenCaptureActive && videoTrack != null) {
+                                                addVideoTrackToPeerConnection(videoTrack)
+                                            }
+                                            createOffer()
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("ScreenShareService", "ICE超时重连失败", e)
+                                            webRTCListener?.onError("ICE重连失败: ${e.message}")
+                                        }
+                                    } else {
+                                        android.util.Log.e("ScreenShareService", "ICE连接重试次数已达上限")
+                                        webRTCListener?.onError("ICE连接超时，请检查网络环境")
+                                        iceConnectionRetryCount = 0
+                                    }
+                                }
+                            }, ICE_CONNECTION_TIMEOUT) // 30秒超时
                         }
                         org.webrtc.PeerConnection.IceConnectionState.NEW -> {
                             android.util.Log.d("ScreenShareService", "🆕 ICE连接新建")
+                        }
+                        org.webrtc.PeerConnection.IceConnectionState.CLOSED -> {
+                            android.util.Log.d("ScreenShareService", "🔒 ICE连接已关闭")
+                            isWebRTCConnecting = false
                         }
                         else -> {
                             android.util.Log.d("ScreenShareService", "ICE连接状态: $state")
@@ -817,14 +1089,50 @@ class ScreenShareService : Service() {
                     
                     if (track is org.webrtc.VideoTrack) {
                         remoteVideoTrack = track
-                        android.util.Log.d("ScreenShareService", "远端视频轨道已设置: ${track.id()}")
-                        android.util.Log.d("ScreenShareService", "视频轨道状态: enabled=${track.enabled()}")
+                        android.util.Log.d("ScreenShareService", "✅ 远端视频轨道已设置: ${track.id()}")
+                        android.util.Log.d("ScreenShareService", "✅ 视频轨道状态: enabled=${track.enabled()}")
+                        android.util.Log.d("ScreenShareService", "✅ 视频轨道类型: ${track.kind()}")
+                        
+                        // 添加视频轨道状态监控
+                        track.addSink(object : org.webrtc.VideoSink {
+                            private var frameCount = 0
+                            private var lastFrameTime = 0L
+                            
+                            override fun onFrame(frame: org.webrtc.VideoFrame?) {
+                                frame?.let {
+                                    frameCount++
+                                    val currentTime = System.currentTimeMillis()
+                                    
+                                    // 每30帧记录一次，避免日志过多
+                                    if (frameCount % 30 == 0) {
+                                        android.util.Log.d("ScreenShareService", "🎥 收到视频帧: ${it.buffer.width}x${it.buffer.height}, 时间戳: ${it.timestampNs}, 总帧数: $frameCount")
+                                        
+                                        // 检查帧率
+                                        if (lastFrameTime > 0) {
+                                            val frameInterval = currentTime - lastFrameTime
+                                            val fps = 1000.0 / frameInterval
+                                            android.util.Log.d("ScreenShareService", "📊 估算帧率: ${String.format("%.1f", fps)} FPS")
+                                        }
+                                        lastFrameTime = currentTime
+                                    }
+                                    
+                                    // 检查帧是否有效
+                                    if (it.buffer.width <= 0 || it.buffer.height <= 0) {
+                                        android.util.Log.w("ScreenShareService", "⚠️ 收到无效帧: ${it.buffer.width}x${it.buffer.height}")
+                                    }
+                                } ?: run {
+                                    android.util.Log.w("ScreenShareService", "⚠️ 收到空视频帧")
+                                }
+                            }
+                        })
+                        
                         // 通知 UI 层远端视频轨道已可用
                         webRTCListener?.onRemoteVideoTrackReceived(track)
                         
                         // 尝试重新绑定到 SurfaceViewRenderer
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
                             try {
+                                android.util.Log.d("ScreenShareService", "🔄 尝试绑定远端视频轨道到SurfaceViewRenderer")
                                 // 现在通过专门的 onRemoteVideoTrackReceived 回调处理
                                 // 不需要额外的错误消息
                             } catch (e: Exception) {
@@ -875,12 +1183,53 @@ class ScreenShareService : Service() {
     fun createOffer() {
         try {
             android.util.Log.d("ScreenShareService", "开始创建 offer")
+            
+            // 检查是否正在连接中
+            if (isWebRTCConnecting) {
+                // 检查是否超时
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastOfferTimestamp > OFFER_TIMEOUT) {
+                    android.util.Log.w("ScreenShareService", "WebRTC连接超时，重置状态并重新创建offer")
+                    isWebRTCConnecting = false
+                    lastOfferTimestamp = 0L
+                } else {
+                    android.util.Log.w("ScreenShareService", "WebRTC正在连接中，跳过重复的offer创建")
+                    return
+                }
+            }
+            
+            // 检查上次offer的时间戳，防止频繁创建
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastOfferTimestamp < 5000 && lastOfferTimestamp > 0) { // 改为5秒间隔
+                android.util.Log.w("ScreenShareService", "距离上次offer创建时间过短，跳过重复创建")
+                return
+            }
+            
             isActingAsSender = true
+            isWebRTCConnecting = true
+            lastOfferTimestamp = currentTime
             
             // 确保发送端启动屏幕采集
             if (!isScreenCaptureActive) {
                 android.util.Log.d("ScreenShareService", "发送端未启动屏幕采集，尝试启动")
                 startScreenCapture(factory, eglBase)
+                // 如果采集失败，直接返回
+                if (!isScreenCaptureActive) {
+                    android.util.Log.e("ScreenShareService", "屏幕采集启动失败，无法创建offer")
+                    isWebRTCConnecting = false
+                    return
+                }
+            }
+            
+            // 确保PeerConnection存在
+            if (peerConnection == null) {
+                android.util.Log.d("ScreenShareService", "PeerConnection不存在，先创建")
+                createPeerConnection()
+                if (peerConnection == null) {
+                    android.util.Log.e("ScreenShareService", "创建PeerConnection失败，无法创建offer")
+                    isWebRTCConnecting = false
+                    return
+                }
             }
             
             peerConnection?.createOffer(object : org.webrtc.SdpObserver {
@@ -901,9 +1250,11 @@ class ScreenShareService : Service() {
                                 android.util.Log.d("ScreenShareService", "已发送 offer 到服务器")
                             } else {
                                 android.util.Log.w("ScreenShareService", "WebSocket连接不可用，跳过offer发送")
+                                isWebRTCConnecting = false
                             }
                         } catch (e: Exception) {
                             android.util.Log.e("ScreenShareService", "发送 offer 失败", e)
+                            isWebRTCConnecting = false
                         }
                     }
                     peerConnection?.setLocalDescription(object : org.webrtc.SdpObserver {
@@ -911,20 +1262,28 @@ class ScreenShareService : Service() {
                         override fun onSetSuccess() {
                             android.util.Log.d("ScreenShareService", "本地描述设置成功")
                         }
-                        override fun onCreateFailure(p0: String?) {}
+                        override fun onCreateFailure(p0: String?) {
+                            android.util.Log.e("ScreenShareService", "创建本地描述失败: $p0")
+                        }
                         override fun onSetFailure(p0: String?) {
                             android.util.Log.e("ScreenShareService", "设置本地描述失败: $p0")
+                            isWebRTCConnecting = false
                         }
                     }, sdp)
                 }
                 override fun onSetSuccess() {}
                 override fun onCreateFailure(p0: String?) {
                     android.util.Log.e("ScreenShareService", "创建 offer 失败: $p0")
+                    isWebRTCConnecting = false
                 }
-                override fun onSetFailure(p0: String?) {}
+                override fun onSetFailure(p0: String?) {
+                    android.util.Log.e("ScreenShareService", "设置本地描述失败: $p0")
+                    isWebRTCConnecting = false
+                }
             }, org.webrtc.MediaConstraints())
         } catch (e: Exception) {
             android.util.Log.e("ScreenShareService", "创建Offer失败", e)
+            isWebRTCConnecting = false
         }
     }
 
@@ -1060,6 +1419,10 @@ class ScreenShareService : Service() {
 
     private fun cleanupAllResources() {
         try {
+            // 取消ICE连接超时处理
+            iceConnectionTimeoutHandler?.removeCallbacksAndMessages(null)
+            iceConnectionTimeoutHandler = null
+            
             cleanupScreenCapture()
             peerConnection?.close()
             peerConnection = null
@@ -1070,39 +1433,72 @@ class ScreenShareService : Service() {
             ws?.close()
             ws = null
             remoteVideoTrack = null
+            
+            // 重置连接状态
+            isConnected = false
+            isConnecting = false
+            isWebRTCConnecting = false
+            reconnectAttempts = 0
+            lastConnectionAttempt = 0L
+            lastOfferTimestamp = 0L
+            
+            android.util.Log.d("ScreenShareService", "所有资源已清理完成")
         } catch (e: Exception) {
             android.util.Log.e("ScreenShareService", "清理所有资源失败", e)
         }
     }
 
     // 公开接口
-    fun selectSender(id: Int) {
-        try {
-            android.util.Log.d("ScreenShareService", "选择发送端: ID=$id")
-            selectedSenderId = id  // 保存选择的发送端ID
-            val selectMsg = org.json.JSONObject()
-            selectMsg.put("type", "select_sender")
-            selectMsg.put("senderId", id)
-            ws?.send(selectMsg.toString())
-            android.util.Log.d("ScreenShareService", "已发送选择发送端消息: $selectMsg")
-        } catch (e: Exception) {
-            android.util.Log.e("ScreenShareService", "发送选择发送端消息失败", e)
+    fun selectSender(senderId: Int) {
+        selectedSenderId = senderId
+        android.util.Log.d("ScreenShareService", "选择发送端: ID=$senderId")
+        
+        // 向信令服务器发送选择发送端消息
+        val currentWs = ws
+        if (isConnected && currentWs?.isOpen == true) {
+            val selectMessage = JSONObject().apply {
+                put("type", "select_sender")
+                put("senderId", senderId)
+            }
+            val messageJson = selectMessage.toString()
+            currentWs.send(messageJson)
+            android.util.Log.d("ScreenShareService", "已发送选择发送端消息: $messageJson")
+        } else {
+            android.util.Log.e("ScreenShareService", "WebSocket未连接，无法发送选择发送端消息")
         }
     }
     fun setRemoteDescription(sdp: String, type: org.webrtc.SessionDescription.Type) {
-        val sessionDescription = org.webrtc.SessionDescription(type, sdp)
-        peerConnection?.setRemoteDescription(object : org.webrtc.SdpObserver {
-            override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
-            override fun onSetSuccess() {
-                android.util.Log.d("ScreenShareService", "远端描述设置成功")
+        try {
+            android.util.Log.d("ScreenShareService", "开始设置远端描述，类型: $type, 当前状态: ${peerConnection?.signalingState()}")
+            
+            if (peerConnection == null) {
+                android.util.Log.e("ScreenShareService", "PeerConnection为空，无法设置远端描述")
+                return
             }
-            override fun onCreateFailure(p0: String?) {
-                android.util.Log.e("ScreenShareService", "创建远端描述失败: $p0")
-            }
-            override fun onSetFailure(p0: String?) {
-                android.util.Log.e("ScreenShareService", "设置远端描述失败: $p0")
-            }
-        }, sessionDescription)
+            
+            val sessionDescription = org.webrtc.SessionDescription(type, sdp)
+            peerConnection?.setRemoteDescription(object : org.webrtc.SdpObserver {
+                override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {
+                    android.util.Log.d("ScreenShareService", "创建远端描述成功")
+                }
+                override fun onSetSuccess() {
+                    android.util.Log.d("ScreenShareService", "远端描述设置成功，新状态: ${peerConnection?.signalingState()}")
+                }
+                override fun onCreateFailure(p0: String?) {
+                    android.util.Log.e("ScreenShareService", "创建远端描述失败: $p0")
+                }
+                override fun onSetFailure(p0: String?) {
+                    android.util.Log.e("ScreenShareService", "设置远端描述失败: $p0")
+                    // 如果是状态错误，尝试重置连接
+                    if (p0?.contains("wrong state") == true) {
+                        android.util.Log.w("ScreenShareService", "检测到状态错误，可能需要重置连接")
+                    }
+                    isWebRTCConnecting = false // 设置失败，重置状态
+                }
+            }, sessionDescription)
+        } catch (e: Exception) {
+            android.util.Log.e("ScreenShareService", "设置远端描述时发生异常", e)
+        }
     }
     fun addIceCandidate(candidate: String, sdpMLineIndex: Int, sdpMid: String) {
        val iceCandidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, candidate)
@@ -1110,7 +1506,7 @@ class ScreenShareService : Service() {
     peerConnection?.addIceCandidate(iceCandidate)
     android.util.Log.d("ScreenShareService", "添加 ICE 候选: $iceCandidate")
     }
-    fun isConnected(): Boolean = isConnected && ws != null && ws!!.isOpen
+    fun isConnected(): Boolean = isConnected
     
     fun resetReconnectAttempts() {
         reconnectAttempts = 0
@@ -1119,10 +1515,16 @@ class ScreenShareService : Service() {
     
     fun getConnectionStatus(): String {
         return when {
+            isConnected && ws?.isOpen == true -> "已连接"
             isConnecting -> "连接中..."
-            isConnected && ws != null && ws!!.isOpen -> "已连接"
             else -> "未连接"
         }
+    }
+
+    fun resetWebRTCConnectionState() {
+        isWebRTCConnecting = false
+        lastOfferTimestamp = 0L
+        android.util.Log.d("ScreenShareService", "WebRTC连接状态已重置")
     }
 
     companion object {

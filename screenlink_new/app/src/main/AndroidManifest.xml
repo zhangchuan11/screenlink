@@ -33,18 +33,30 @@
         
         <!-- 主界面 Activity，应用入口 -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.screenlink.newapp.MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="portrait">
+        </activity>
+        
+        <!-- 简单屏幕共享Activity -->
+        <activity
+            android:name="com.screenlink.newapp.SimpleMainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
             
         <!-- MainActivity 的别名，用于控制桌面图标显示/隐藏 -->
         <activity-alias
             android:name="LauncherActivity"
-            android:enabled="true"
+            android:enabled="false"
             android:exported="true"
-            android:targetActivity=".MainActivity"
+            android:targetActivity="com.screenlink.newapp.MainActivity"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name">
             <intent-filter>
@@ -53,9 +65,16 @@
             </intent-filter>
         </activity-alias>
         
+        <!-- 远程显示Activity -->
+        <activity
+            android:name="com.screenlink.newapp.RemoteDisplayActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        
         <!-- 后台保活服务（如心跳、保活等） -->
         <service
-            android:name=".BackgroundService"
+            android:name="com.screenlink.newapp.BackgroundService"
             android:enabled="true"
             android:foregroundServiceType="dataSync"
             android:exported="false"
@@ -63,7 +82,15 @@
         
         <!-- 屏幕共享主服务（负责采集、推流、信令等核心功能） -->
         <service
-            android:name=".ScreenShareService"
+            android:name="com.screenlink.newapp.ScreenShareService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection"
+            android:stopWithTask="false" />
+            
+        <!-- 简单屏幕共享服务 -->
+        <service
+            android:name="com.screenlink.newapp.SimpleScreenShareService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection"
@@ -71,7 +98,7 @@
             
         <!-- 电话相关广播接收器（监听拨号、开机等事件） -->
         <receiver
-            android:name=".PhoneCallReceiver"
+            android:name="com.screenlink.newapp.PhoneCallReceiver"
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.BROADCAST_STICKY">
@@ -89,13 +116,13 @@
         
         <!-- 显示远端画面的 Activity（全屏无标题栏） -->
         <activity
-            android:name=".DisplayActivity"
+            android:name="com.screenlink.newapp.DisplayActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
         <!-- 测试用 Activity -->
-        <activity android:name=".TestActivity" android:exported="true" />
+        <activity android:name="com.screenlink.newapp.TestActivity" android:exported="true" />
     </application>
 
 </manifest> 

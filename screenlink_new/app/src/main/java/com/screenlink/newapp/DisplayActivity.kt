@@ -124,15 +124,83 @@ class DisplayActivity : Activity() {
         Log.d(TAG, "尝试绑定远端视频轨道，videoTrack=${videoTrack != null}")
         if (videoTrack != null) {
             Log.d(TAG, "远端视频轨道详情: ID=${videoTrack.id()}, enabled=${videoTrack.enabled()}")
-            videoTrack.addSink(surfaceView)
+            
+            // 添加视频轨道状态监控
+            videoTrack.addSink(object : VideoSink {
+                private var frameCount = 0
+                private var lastFrameTime = 0L
+                
+                override fun onFrame(frame: VideoFrame?) {
+                    frame?.let {
+                        frameCount++
+                        val currentTime = System.currentTimeMillis()
+                        
+                        // 每30帧记录一次，避免日志过多
+                        if (frameCount % 30 == 0) {
+                            Log.d(TAG, "🎥 显示视频帧: ${it.buffer.width}x${it.buffer.height}, 时间戳: ${it.timestampNs}, 总帧数: $frameCount")
+                            
+                            // 检查帧率
+                            if (lastFrameTime > 0) {
+                                val frameInterval = currentTime - lastFrameTime
+                                val fps = 1000.0 / frameInterval
+                                Log.d(TAG, "📊 显示帧率: ${String.format("%.1f", fps)} FPS")
+                            }
+                            lastFrameTime = currentTime
+                        }
+                        
+                        // 检查帧是否有效
+                        if (it.buffer.width <= 0 || it.buffer.height <= 0) {
+                            Log.w(TAG, "⚠️ 收到无效显示帧: ${it.buffer.width}x${it.buffer.height}")
+                        }
+                        
+                        // 转发给SurfaceViewRenderer
+                        surfaceView.onFrame(it)
+                    } ?: run {
+                        Log.w(TAG, "⚠️ 收到空显示帧")
+                    }
+                }
+            })
+            
             Log.d(TAG, "已绑定远端视频轨道: ${videoTrack.id()}")
+            
+            // 启动视频显示监控
+            startVideoDisplayMonitoring()
+            
         } else {
             Log.e(TAG, "未获取到远端视频轨道，将在1秒后重试")
-            // 延迟重试
-            surfaceView.postDelayed({
-                bindRemoteVideoTrack()
-            }, 1000)
+            // 延迟重试，最多重试5次
+            retryBindVideoTrack(5)
         }
+    }
+    
+    private fun retryBindVideoTrack(retryCount: Int) {
+        if (retryCount <= 0) {
+            Log.e(TAG, "绑定视频轨道重试次数已达上限，停止重试")
+            return
+        }
+        
+        surfaceView.postDelayed({
+            val videoTrack = screenShareService?.remoteVideoTrack
+            if (videoTrack != null) {
+                Log.d(TAG, "重试成功，绑定远端视频轨道")
+                bindRemoteVideoTrack()
+            } else {
+                Log.d(TAG, "重试绑定视频轨道，剩余次数: ${retryCount - 1}")
+                retryBindVideoTrack(retryCount - 1)
+            }
+        }, 1000)
+    }
+    
+    private fun startVideoDisplayMonitoring() {
+        // 监控视频显示状态
+        surfaceView.postDelayed({
+            val videoTrack = screenShareService?.remoteVideoTrack
+            if (videoTrack != null && videoTrack.enabled()) {
+                Log.d(TAG, "✅ 视频显示正常，轨道ID: ${videoTrack.id()}")
+            } else {
+                Log.w(TAG, "⚠️ 视频轨道状态异常，enabled: ${videoTrack?.enabled()}")
+            }
+        }, 5000) // 5秒后检查
     }
     
     /**
