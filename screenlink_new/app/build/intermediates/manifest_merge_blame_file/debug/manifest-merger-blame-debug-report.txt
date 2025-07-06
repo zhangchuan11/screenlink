@@ -1,0 +1,293 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.screenlink.newapp"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <!-- 必要的权限声明：网络、录音、前台服务、系统等 -->
+12    <uses-permission android:name="android.permission.INTERNET" /> <!-- 网络访问 -->
+12-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:6:5-67
+12-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:6:22-64
+13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- 网络状态 -->
+13-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:7:5-79
+13-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:7:22-76
+14    <uses-permission android:name="android.permission.RECORD_AUDIO" /> <!-- 录音 -->
+14-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:8:5-71
+14-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:8:22-68
+15    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- 通知权限 -->
+15-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:9:5-77
+15-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:9:22-74
+16    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> <!-- 前台服务 -->
+16-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:10:5-77
+16-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:10:22-74
+17    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" /> <!-- 录屏前台服务 -->
+17-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:11:5-94
+17-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:11:22-91
+18    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" /> <!-- 数据同步前台服务 -->
+18-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:12:5-87
+18-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:12:22-84
+19    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> <!-- 读取电话状态 -->
+19-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:13:5-75
+19-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:13:22-72
+20    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" /> <!-- 处理外拨电话 -->
+20-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:14:5-81
+20-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:14:22-78
+21    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- 保持唤醒 -->
+21-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:15:5-68
+21-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:15:22-65
+22    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" /> <!-- 忽略电池优化 -->
+22-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:16:5-95
+22-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:16:22-92
+23    <uses-permission android:name="android.permission.GET_TASKS" /> <!-- 获取任务列表 -->
+23-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:17:5-68
+23-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:17:22-65
+24    <uses-permission android:name="android.permission.REORDER_TASKS" /> <!-- 重新排序任务 -->
+24-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:18:5-72
+24-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:18:22-69
+25    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /> <!-- 悬浮窗权限 -->
+25-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:19:5-78
+25-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:19:22-75
+26
+27
+28    <!-- 可选硬件特性声明：不强制要求电话模块 -->
+29    <uses-feature
+29-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:22:5-24:36
+30        android:name="android.hardware.telephony"
+30-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:23:9-50
+31        android:required="false" />
+31-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:24:9-33
+32
+33    <permission
+33-->[androidx.core:core:1.10.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\6165d4a8829f6a40300ab98757843267\transformed\core-1.10.1\AndroidManifest.xml:22:5-24:47
+34        android:name="com.screenlink.newapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+34-->[androidx.core:core:1.10.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\6165d4a8829f6a40300ab98757843267\transformed\core-1.10.1\AndroidManifest.xml:23:9-81
+35        android:protectionLevel="signature" />
+35-->[androidx.core:core:1.10.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\6165d4a8829f6a40300ab98757843267\transformed\core-1.10.1\AndroidManifest.xml:24:9-44
+36
+37    <uses-permission android:name="com.screenlink.newapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+37-->[androidx.core:core:1.10.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\6165d4a8829f6a40300ab98757843267\transformed\core-1.10.1\AndroidManifest.xml:26:5-97
+37-->[androidx.core:core:1.10.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\6165d4a8829f6a40300ab98757843267\transformed\core-1.10.1\AndroidManifest.xml:26:22-94
+38
+39    <application
+39-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:26:5-126:19
+40        android:allowBackup="true"
+40-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:27:9-35
+41        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+41-->[androidx.core:core:1.10.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\6165d4a8829f6a40300ab98757843267\transformed\core-1.10.1\AndroidManifest.xml:28:18-86
+42        android:debuggable="true"
+43        android:extractNativeLibs="false"
+44        android:icon="@mipmap/ic_launcher"
+44-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:29:9-43
+45        android:label="ScreenLink"
+45-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:28:9-35
+46        android:roundIcon="@mipmap/ic_launcher_round"
+46-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:30:9-54
+47        android:supportsRtl="true"
+47-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:31:9-35
+48        android:testOnly="true"
+49        android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
+49-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:32:9-65
+50
+51        <!-- 主界面 Activity，应用入口 -->
+52        <activity
+52-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:35:9-40:20
+53            android:name="com.screenlink.newapp.MainActivity"
+53-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:36:13-62
+54            android:exported="true"
+54-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:37:13-36
+55            android:launchMode="singleTask"
+55-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:38:13-44
+56            android:screenOrientation="portrait" >
+56-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:39:13-49
+57        </activity> <!-- MainActivity 的别名，用于控制桌面图标显示/隐藏 -->
+58        <activity-alias
+58-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:55:9-66:26
+59            android:name="com.screenlink.newapp.LauncherActivity"
+59-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:56:13-44
+60            android:enabled="false"
+60-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:57:13-36
+61            android:exported="true"
+61-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:58:13-36
+62            android:icon="@mipmap/ic_launcher"
+62-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:60:13-47
+63            android:label="@string/app_name"
+63-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:61:13-45
+64            android:targetActivity="com.screenlink.newapp.MainActivity" >
+64-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:59:13-72
+65            <intent-filter>
+65-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:48:13-51:29
+66                <action android:name="android.intent.action.MAIN" />
+66-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:49:17-69
+66-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:49:25-66
+67
+68                <category android:name="android.intent.category.LAUNCHER" />
+68-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:50:17-77
+68-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:50:27-74
+69            </intent-filter>
+70        </activity-alias>
+71
+72        <!-- 简单屏幕共享Activity -->
+73        <activity
+73-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:43:9-52:20
+74            android:name="com.screenlink.newapp.SimpleMainActivity"
+74-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:44:13-68
+75            android:exported="true"
+75-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:45:13-36
+76            android:screenOrientation="portrait"
+76-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:46:13-49
+77            android:theme="@style/Theme.AppCompat.Light.NoActionBar" >
+77-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:47:13-69
+78            <intent-filter>
+78-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:48:13-51:29
+79                <action android:name="android.intent.action.MAIN" />
+79-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:49:17-69
+79-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:49:25-66
+80
+81                <category android:name="android.intent.category.LAUNCHER" />
+81-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:50:17-77
+81-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:50:27-74
+82            </intent-filter>
+83        </activity>
+84
+85        <!-- 远程显示Activity -->
+86        <activity
+86-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:69:9-73:72
+87            android:name="com.screenlink.newapp.RemoteDisplayActivity"
+87-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:70:13-71
+88            android:exported="true"
+88-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:71:13-36
+89            android:screenOrientation="portrait"
+89-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:72:13-49
+90            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+90-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:73:13-69
+91
+92        <!-- 后台保活服务（如心跳、保活等） -->
+93        <service
+93-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:76:9-81:44
+94            android:name="com.screenlink.newapp.BackgroundService"
+94-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:77:13-67
+95            android:enabled="true"
+95-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:78:13-35
+96            android:exported="false"
+96-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:80:13-37
+97            android:foregroundServiceType="dataSync"
+97-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:79:13-53
+98            android:stopWithTask="false" />
+98-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:81:13-41
+99
+100        <!-- 屏幕共享主服务（负责采集、推流、信令等核心功能） -->
+101        <service
+101-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:84:9-89:44
+102            android:name="com.screenlink.newapp.ScreenShareService"
+102-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:85:13-68
+103            android:enabled="true"
+103-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:86:13-35
+104            android:exported="false"
+104-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:87:13-37
+105            android:foregroundServiceType="mediaProjection"
+105-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:88:13-60
+106            android:stopWithTask="false" />
+106-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:89:13-41
+107
+108        <!-- 简单屏幕共享服务 -->
+109        <service
+109-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:92:9-97:44
+110            android:name="com.screenlink.newapp.SimpleScreenShareService"
+110-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:93:13-74
+111            android:enabled="true"
+111-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:94:13-35
+112            android:exported="false"
+112-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:95:13-37
+113            android:foregroundServiceType="mediaProjection"
+113-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:96:13-60
+114            android:stopWithTask="false" />
+114-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:97:13-41
+115
+116        <!-- 电话相关广播接收器（监听拨号、开机等事件） -->
+117        <receiver
+117-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:100:9-115:20
+118            android:name="com.screenlink.newapp.PhoneCallReceiver"
+118-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:101:13-67
+119            android:enabled="true"
+119-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:102:13-35
+120            android:exported="true"
+120-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:103:13-36
+121            android:permission="android.permission.BROADCAST_STICKY" >
+121-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:104:13-69
+122
+123            <!-- 监听电话拨出、电话状态变化 -->
+124            <intent-filter android:priority="1000" >
+124-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:106:13-109:29
+124-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:106:28-51
+125                <action android:name="android.intent.action.NEW_OUTGOING_CALL" />
+125-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:107:17-82
+125-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:107:25-79
+126                <action android:name="android.intent.action.PHONE_STATE" />
+126-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:108:17-76
+126-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:108:25-73
+127            </intent-filter>
+128            <!-- 监听秘密代码（如*#*#12345#*#*） -->
+129            <intent-filter android:priority="1000" >
+129-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:111:13-114:29
+129-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:111:28-51
+130                <action android:name="android.provider.Telephony.SECRET_CODE" />
+130-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:112:17-81
+130-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:112:25-78
+131
+132                <data
+132-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:113:17-83
+133                    android:host="12345"
+133-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:113:60-80
+134                    android:scheme="android_secret_code" />
+134-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:113:23-59
+135            </intent-filter>
+136        </receiver>
+137
+138        <!-- 显示远端画面的 Activity（全屏无标题栏） -->
+139        <activity
+139-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:118:9-122:74
+140            android:name="com.screenlink.newapp.DisplayActivity"
+140-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:119:13-65
+141            android:exported="false"
+141-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:120:13-37
+142            android:screenOrientation="portrait"
+142-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:121:13-49
+143            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+143-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:122:13-71
+144
+145        <!-- 测试用 Activity -->
+146        <activity
+146-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:125:9-95
+147            android:name="com.screenlink.newapp.TestActivity"
+147-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:125:19-68
+148            android:exported="true" />
+148-->C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\AndroidManifest.xml:125:69-92
+149
+150        <provider
+150-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+151            android:name="androidx.startup.InitializationProvider"
+151-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
+152            android:authorities="com.screenlink.newapp.androidx-startup"
+152-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
+153            android:exported="false" >
+153-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
+154            <meta-data
+154-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+155                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+155-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
+156                android:value="androidx.startup" />
+156-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Administrator\.gradle\caches\8.12\transforms\9dd8fb957b6b63eedda866ff0ec13874\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
+157            <meta-data
+157-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\b0c9083bb339698e5675606b5f0d6134\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:31:13-33:52
+158                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+158-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\b0c9083bb339698e5675606b5f0d6134\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:32:17-78
+159                android:value="androidx.startup" />
+159-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\Administrator\.gradle\caches\8.12\transforms\b0c9083bb339698e5675606b5f0d6134\transformed\jetified-lifecycle-process-2.4.1\AndroidManifest.xml:33:17-49
+160        </provider>
+161    </application>
+162
+163</manifest>

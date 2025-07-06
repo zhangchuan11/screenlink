@@ -1,0 +1,13 @@
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\TestActivity.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\RemoteDisplayActivity.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\ScreenShareService.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\MainActivity.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\PhoneCallReceiver.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\SignalingClient.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\UIManager.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\SimpleScreenShareService.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\AppIconUtils.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\DisplayActivity.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\BackgroundService.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\ClientAdapter.kt
+C:\Users\Administrator\Documents\work\chen\screenlink\screenlink_new\app\src\main\java\com\screenlink\newapp\SimpleMainActivity.kt

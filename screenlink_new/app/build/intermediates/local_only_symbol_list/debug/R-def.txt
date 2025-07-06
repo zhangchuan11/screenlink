@@ -1,0 +1,26 @@
+R_DEF: Internal format may change without notice
+local
+id btnConnect
+id btnShowIcon
+id btnStartSender
+id btnToggleIcon
+id connectButton
+id disconnectButton
+id recyclerViewClients
+id remoteDisplayButton
+id remoteVideoView
+id remote_surface
+id startButton
+id statusText
+id stopButton
+id tvIconStatus
+id tvSelectedClient
+id tvStatus
+layout activity_display
+layout activity_main
+layout activity_remote_display
+layout activity_simple_main
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+style Theme.AppCompat.Light.NoActionBar
